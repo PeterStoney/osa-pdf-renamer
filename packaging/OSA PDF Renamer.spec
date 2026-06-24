@@ -19,6 +19,7 @@ a = Analysis(
         (str(PROJECT_DIR / "progress_runner"), "."),
         *include_if_exists(POPPLER_DIR / "bin" / "pdftotext", "bin"),
         *include_if_exists(POPPLER_DIR / "bin" / "pdftoppm", "bin"),
+        *include_if_exists(POPPLER_DIR / "bin" / "pdfinfo", "bin"),
         *include_if_exists(
             POPPLER_DIR / "lib" / "libpoppler.161.dylib",
             "lib",

@@ -9,6 +9,7 @@ from pathlib import Path
 from .config import (
     OLLAMA_EXECUTABLE,
     OLLAMA_MODEL,
+    PDFINFO_EXECUTABLE,
     PDFTOPPM_EXECUTABLE,
     PDFTOTEXT_EXECUTABLE,
     PROGRESS_RUNNER_EXECUTABLE,
@@ -368,6 +369,8 @@ def check_dependencies(auto_setup: bool = False):
         errors.append(f"pdftotext is missing at {PDFTOTEXT_EXECUTABLE}")
     if not executable_exists(PDFTOPPM_EXECUTABLE):
         errors.append(f"pdftoppm/Poppler is missing at {PDFTOPPM_EXECUTABLE}")
+    if not executable_exists(PDFINFO_EXECUTABLE):
+        errors.append(f"pdfinfo/Poppler is missing at {PDFINFO_EXECUTABLE}")
 
     rebuild_error = rebuild_vision_helper()
     if rebuild_error:

@@ -63,9 +63,10 @@ mkdir -p "$POPPLER_BIN_DIR" "$POPPLER_LIB_DIR"
 
 PDFTOTEXT_SOURCE="$(command -v pdftotext || true)"
 PDFTOPPM_SOURCE="$(command -v pdftoppm || true)"
+PDFINFO_SOURCE="$(command -v pdfinfo || true)"
 
-if [[ -z "$PDFTOTEXT_SOURCE" || -z "$PDFTOPPM_SOURCE" ]]; then
-  echo "pdftotext/pdftoppm are missing on this build machine."
+if [[ -z "$PDFTOTEXT_SOURCE" || -z "$PDFTOPPM_SOURCE" || -z "$PDFINFO_SOURCE" ]]; then
+  echo "pdftotext/pdftoppm/pdfinfo are missing on this build machine."
   echo "Install Poppler on the build machine before packaging."
   if [[ -t 0 ]]; then
     read -k 1 "?Press any key to close."
@@ -75,7 +76,8 @@ fi
 
 cp "$(realpath "$PDFTOTEXT_SOURCE")" "$POPPLER_BIN_DIR/pdftotext"
 cp "$(realpath "$PDFTOPPM_SOURCE")" "$POPPLER_BIN_DIR/pdftoppm"
-chmod +x "$POPPLER_BIN_DIR/pdftotext" "$POPPLER_BIN_DIR/pdftoppm"
+cp "$(realpath "$PDFINFO_SOURCE")" "$POPPLER_BIN_DIR/pdfinfo"
+chmod +x "$POPPLER_BIN_DIR/pdftotext" "$POPPLER_BIN_DIR/pdftoppm" "$POPPLER_BIN_DIR/pdfinfo"
 
 POPPLER_LIB="$(
   otool -L "$PDFTOTEXT_SOURCE" \

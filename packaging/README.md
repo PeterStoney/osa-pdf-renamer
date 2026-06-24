@@ -28,7 +28,7 @@ The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.
 
 Poppler is bundled by `build_app.command` from the build machine's installed
-`pdftotext` and `pdftoppm`. The app first looks for bundled Poppler tools in
+`pdftotext`, `pdftoppm`, and `pdfinfo`. The app first looks for bundled Poppler tools in
 `bin/`, then falls back to `PATH` and `/opt/homebrew/bin`.
 
 ## Build

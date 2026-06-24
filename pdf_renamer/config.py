@@ -86,6 +86,11 @@ PDFTOPPM_EXECUTABLE = first_available_executable(
     "pdftoppm",
     "/opt/homebrew/bin/pdftoppm",
 )
+PDFINFO_EXECUTABLE = first_available_executable(
+    *bundled_executable_candidates("pdfinfo"),
+    "pdfinfo",
+    "/opt/homebrew/bin/pdfinfo",
+)
 OLLAMA_EXECUTABLE = first_available_executable(
     *bundled_executable_candidates("ollama"),
     "ollama",
