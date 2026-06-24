@@ -76,5 +76,17 @@
     "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname: EXAMPLE\nFirst Name: _MORGAN\nDate of Birth: 05/05/1975\nEmail: morganexample@example.com\nEmergency Contact\nName: TAYLOR CONTACT\nRelationship to patient: PARTNER\nAccount Details\nMedicare Number\nCorrespondence Details",
     "patient_name": "Morgan Example",
     "document_type": "Reg form"
+  },
+  {
+    "name": "Radiology procedure description with RT abbreviation",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX                           Accession Number: 2026ABC123\nDate of Birth: January 1, 1970                       Procedure Description: MRI RT KNEE\nModality: MR\nFindings\nEXAMINATION:\n\nMRI right knee.\nCLINICAL:\nAcute sporting injury.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
+  },
+  {
+    "name": "Radiology procedure description with LT abbreviation",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: EXAMPLE, MORGAN                        Accession Number: 2026ABC456\nDate of Birth: February 2, 1972                      Procedure Description: MRI LT HIP\nModality: MR\nFindings\nEXAMINATION:\n\nMRI left hip.\nCLINICAL:\nHip pain.",
+    "patient_name": "Morgan Example",
+    "document_type": "MRI left hip"
   }
 ]

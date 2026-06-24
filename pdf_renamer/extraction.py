@@ -155,9 +155,63 @@ def explicit_imaging_type(text: str) -> str:
         "X RAY": "X-ray",
     }
 
+    def normalize_subject(subject: str) -> str:
+        subject = re.sub(
+            r"\b(?:REPORT|EXAMINATION|STUDY)\b",
+            "",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        subject = re.sub(
+            r"\bRT\b",
+            "RIGHT",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        subject = re.sub(
+            r"\bLT\b",
+            "LEFT",
+            subject,
+            flags=re.IGNORECASE,
+        )
+        return re.sub(r"\s+", " ", subject).strip(" ,-")
+
+    def format_imaging_type(modality_token: str, subject: str) -> str:
+        modality = modality_names[
+            re.sub(r"\s+", " ", modality_token.upper())
+        ]
+        subject = normalize_subject(subject)
+        if (
+            not subject
+            or "," in subject
+            or ";" in subject
+            or re.search(
+                r"\b(?:MRI|CT|US|ULTRASOUND|XRAY|X-RAY)\b",
+                subject,
+                flags=re.IGNORECASE,
+            )
+        ):
+            return UNKNOWN
+        return f"{modality} {subject.lower()}"
+
     raw_lines = primary_text.splitlines()
     for index, raw_line in enumerate(raw_lines):
         line = re.sub(r"\s+", " ", raw_line).strip(" :-.")
+        labelled_match = re.search(
+            r"\b(?:PROCEDURE DESCRIPTION|EXAMINATION|STUDY)\s*:\s*"
+            r"(MRI|CT|US|ULTRASOUND|XRAY|X-RAY|X RAY)\s+"
+            r"(?:OF\s+)?([A-Z][A-Z0-9 /,&+\-]{2,70})",
+            line,
+            flags=re.IGNORECASE,
+        )
+        if labelled_match:
+            document_type = format_imaging_type(
+                labelled_match.group(1),
+                labelled_match.group(2),
+            )
+            if document_type != UNKNOWN:
+                return document_type
+
         match = re.fullmatch(
             r"(MRI|CT|US|ULTRASOUND|XRAY|X-RAY|X RAY)\s+"
             r"(?:OF\s+)?([A-Z][A-Z0-9 /,&+\-]{2,70})",
@@ -167,8 +221,10 @@ def explicit_imaging_type(text: str) -> str:
         if not match:
             continue
         previous_line = ""
-        if index:
-            previous_line = raw_lines[index - 1].strip()
+        for previous in reversed(raw_lines[:index]):
+            previous_line = previous.strip()
+            if previous_line:
+                break
         is_explicit_field = bool(
             re.fullmatch(
                 r"(?:EXAMINATION|PROCEDURE DESCRIPTION|STUDY)\s*:?",
@@ -179,30 +235,12 @@ def explicit_imaging_type(text: str) -> str:
         if raw_line != raw_line.upper() and not is_explicit_field:
             continue
 
-        modality = modality_names[
-            re.sub(r"\s+", " ", match.group(1).upper())
-        ]
-        subject = re.sub(
-            r"\b(?:REPORT|EXAMINATION|STUDY)\b",
-            "",
+        document_type = format_imaging_type(
+            match.group(1),
             match.group(2),
-            flags=re.IGNORECASE,
         )
-        subject = re.sub(r"\s+", " ", subject).strip(" ,-")
-        if (
-            "," in subject
-            or ";" in subject
-            or re.search(
-                r"\b(?:MRI|CT|US|ULTRASOUND|XRAY|X-RAY)\b",
-                subject,
-                flags=re.IGNORECASE,
-            )
-        ):
-            continue
-        if not subject:
-            continue
-
-        return f"{modality} {subject.lower()}"
+        if document_type != UNKNOWN:
+            return document_type
 
     return UNKNOWN
 
