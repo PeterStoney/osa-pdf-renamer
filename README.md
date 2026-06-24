@@ -124,3 +124,14 @@ tests/                       Privacy-safe regression suite
 scripts/                     Coworker/setup helper scripts
 ```
 
+Key package modules:
+
+- `app.py`: batch orchestration and Ollama shutdown.
+- `config.py`: executable paths and model settings.
+- `extraction.py`: deterministic rules, model prompt, and validation.
+- `health.py`: dependency checks and Vision helper rebuilds.
+- `models.py`: shared result dataclasses.
+- `naming.py`: filename formatting and duplicate handling.
+- `notifications.py`: macOS completion notification.
+- `ocr.py`: embedded PDF text and structured Vision OCR.
+- `workflow.py`: processing and renaming one PDF.
