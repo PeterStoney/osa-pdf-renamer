@@ -7,7 +7,7 @@ UNKNOWN = "unknown"
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 CONFIG_PATH = PROJECT_DIR / "config.toml"
 VISION_OCR_EXECUTABLE = PROJECT_DIR / "vision_ocr"
-VISION_OCR_SOURCE = PROJECT_DIR / "vision_ocr.swift"
+VISION_OCR_SOURCE = PROJECT_DIR / "helpers" / "vision_ocr.swift"
 PDFTOTEXT_EXECUTABLE = (
     shutil.which("pdftotext")
     or "/opt/homebrew/bin/pdftotext"

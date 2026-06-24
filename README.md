@@ -118,10 +118,11 @@ real OCR output, PDFs, or debug files to the test manifest.
 ```text
 patient_pdf_renamer.py       Automator-compatible entry point
 config.toml                  Local default settings
-vision_ocr.swift             macOS Vision OCR helper source
+helpers/vision_ocr.swift     macOS Vision OCR helper source
 pdf_renamer/                 Application package
 tests/                       Privacy-safe regression suite
 scripts/                     Coworker/setup helper scripts
+helpers/                     Helper source files used by the runtime
 ```
 
 Key package modules:
