@@ -1,0 +1,20 @@
+#!/bin/zsh
+set -euo pipefail
+
+SCRIPT_DIR=${0:a:h}
+PROJECT_DIR=${SCRIPT_DIR:h}
+PYTHON="/opt/miniconda3/bin/python"
+
+if [[ ! -x "$PYTHON" ]]; then
+  PYTHON="$(command -v python3)"
+fi
+
+cd "$PROJECT_DIR"
+
+echo "Running privacy-safe PDF renamer regression tests..."
+echo
+"$PYTHON" tests/run_regression.py
+
+echo
+read -k 1 "?Press any key to close."
+
