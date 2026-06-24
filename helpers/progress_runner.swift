@@ -9,7 +9,7 @@ final class ProgressRunner: NSObject {
     let arguments: [String]
 
     let window = NSWindow(
-        contentRect: NSRect(x: 0, y: 0, width: 520, height: 180),
+        contentRect: NSRect(x: 0, y: 0, width: 680, height: 180),
         styleMask: [.titled, .closable],
         backing: .buffered,
         defer: false
@@ -40,21 +40,21 @@ final class ProgressRunner: NSObject {
         window.center()
         window.isReleasedWhenClosed = false
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 180))
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 680, height: 180))
         window.contentView = content
 
         titleLabel.stringValue = descriptionText
         titleLabel.font = NSFont.boldSystemFont(ofSize: 16)
-        titleLabel.frame = NSRect(x: 28, y: 128, width: 464, height: 24)
+        titleLabel.frame = NSRect(x: 28, y: 128, width: 624, height: 24)
         content.addSubview(titleLabel)
 
         detailLabel.stringValue = "Preparing…"
         detailLabel.font = NSFont.systemFont(ofSize: 13)
         detailLabel.lineBreakMode = .byTruncatingMiddle
-        detailLabel.frame = NSRect(x: 28, y: 82, width: 464, height: 40)
+        detailLabel.frame = NSRect(x: 28, y: 82, width: 624, height: 40)
         content.addSubview(detailLabel)
 
-        progress.frame = NSRect(x: 28, y: 48, width: 464, height: 20)
+        progress.frame = NSRect(x: 28, y: 48, width: 624, height: 20)
         progress.style = .bar
         progress.isIndeterminate = true
         progress.startAnimation(nil)
@@ -77,11 +77,7 @@ final class ProgressRunner: NSObject {
             guard let text = String(data: data, encoding: .utf8) else { return }
             self?.output += text
             FileHandle.standardError.write(data)
-            let line = text
-                .split(whereSeparator: \.isNewline)
-                .last
-                .map(String.init)?
-                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let line = ProgressRunner.cleanDisplayLine(text)
             guard let line, !line.isEmpty else { return }
             DispatchQueue.main.async {
                 self?.detailLabel.stringValue = line
@@ -103,6 +99,31 @@ final class ProgressRunner: NSObject {
                 NSApp.terminate(1)
             }
         }
+    }
+
+    static func cleanDisplayLine(_ text: String) -> String? {
+        var cleaned = text.replacingOccurrences(
+            of: #"\u{001B}\[[0-?]*[ -/]*[@-~]"#,
+            with: "",
+            options: .regularExpression
+        )
+        cleaned = cleaned.replacingOccurrences(of: "\r", with: "\n")
+        cleaned = cleaned.replacingOccurrences(
+            of: #"[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏█▉▊▋▌▍▎▏░▒▓■□▪▫]+"#,
+            with: "",
+            options: .regularExpression
+        )
+        cleaned = cleaned.replacingOccurrences(
+            of: #"\s{2,}"#,
+            with: " ",
+            options: .regularExpression
+        )
+
+        return cleaned
+            .split(whereSeparator: \.isNewline)
+            .last
+            .map(String.init)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
 
