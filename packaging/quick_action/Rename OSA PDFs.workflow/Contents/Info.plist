@@ -3,15 +3,13 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleIdentifier</key>
-  <string>au.com.osa.pdf-renamer.quick-action</string>
-  <key>CFBundleName</key>
-  <string>Rename OSA PDFs</string>
-  <key>CFBundlePackageType</key>
-  <string>FMWK</string>
   <key>NSServices</key>
   <array>
     <dict>
+      <key>NSBackgroundColorName</key>
+      <string>background</string>
+      <key>NSIconName</key>
+      <string>NSActionTemplate</string>
       <key>NSMenuItem</key>
       <dict>
         <key>default</key>
@@ -19,9 +17,14 @@
       </dict>
       <key>NSMessage</key>
       <string>runWorkflowAsService</string>
+      <key>NSRequiredContext</key>
+      <dict>
+        <key>NSApplicationIdentifier</key>
+        <string>com.apple.finder</string>
+      </dict>
       <key>NSSendFileTypes</key>
       <array>
-        <string>com.adobe.pdf</string>
+        <string>public.item</string>
       </array>
     </dict>
   </array>

@@ -13,15 +13,5 @@
     <key>RootRelativeBundlePath</key>
     <string>Applications/OSA PDF Renamer.app</string>
   </dict>
-  <dict>
-    <key>BundleIsRelocatable</key>
-    <false/>
-    <key>BundleIsVersionChecked</key>
-    <false/>
-    <key>BundleOverwriteAction</key>
-    <string>upgrade</string>
-    <key>RootRelativeBundlePath</key>
-    <string>Library/Application Support/OSA PDF Renamer/Quick Actions/Rename OSA PDFs.workflow</string>
-  </dict>
 </array>
 </plist>

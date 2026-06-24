@@ -31,6 +31,15 @@ mkdir -p "$SERVICES_DIR"
 rm -rf "$TARGET_WORKFLOW"
 cp -R "$SOURCE_WORKFLOW" "$TARGET_WORKFLOW"
 
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$LSREGISTER" ]]; then
+  "$LSREGISTER" -f "$TARGET_WORKFLOW" >/dev/null 2>&1 || true
+fi
+
+if [[ -x "/System/Library/CoreServices/pbs" ]]; then
+  /System/Library/CoreServices/pbs -flush >/dev/null 2>&1 || true
+fi
+
 echo "Installed:"
 echo "  $TARGET_WORKFLOW"
 echo

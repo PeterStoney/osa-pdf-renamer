@@ -35,5 +35,13 @@ fi
 /bin/cp -R "$WORKFLOW_SOURCE" "$target_workflow"
 /usr/sbin/chown -R "$console_user":staff "$target_workflow"
 
-echo "Installed Finder Quick Action for $console_user: $target_workflow"
+lsregister="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$lsregister" ]]; then
+  "$lsregister" -f "$target_workflow" >/dev/null 2>&1 || true
+fi
 
+if [[ -x "/System/Library/CoreServices/pbs" ]]; then
+  /System/Library/CoreServices/pbs -flush >/dev/null 2>&1 || true
+fi
+
+echo "Installed Finder Quick Action for $console_user: $target_workflow"
