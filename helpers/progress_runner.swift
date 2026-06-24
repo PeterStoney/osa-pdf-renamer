@@ -76,7 +76,6 @@ final class ProgressRunner: NSObject {
             guard !data.isEmpty else { return }
             guard let text = String(data: data, encoding: .utf8) else { return }
             self?.output += text
-            FileHandle.standardError.write(data)
             let line = ProgressRunner.cleanDisplayLine(text)
             guard let line, !line.isEmpty else { return }
             DispatchQueue.main.async {

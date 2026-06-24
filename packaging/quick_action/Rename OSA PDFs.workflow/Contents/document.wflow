@@ -88,7 +88,16 @@ if [[ ${#pdfs[@]} -eq 0 ]]; then
   exit 0
 fi
 
-"$APP" "${pdfs[@]}"</string>
+output="$("$APP" "${pdfs[@]}" 2&gt;&amp;1)" || {
+  if [[ -n "$output" ]]; then
+    /usr/bin/osascript - "$output" &lt;&lt;'APPLESCRIPT'
+on run argv
+  display dialog item 1 of argv with title "OSA PDF Renamer" buttons {"OK"} default button "OK"
+end run
+APPLESCRIPT
+  fi
+  exit 0
+}</string>
           <key>CheckedForUserDefaultShell</key>
           <true/>
           <key>inputMethod</key>
