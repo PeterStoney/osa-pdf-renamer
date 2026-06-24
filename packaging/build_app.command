@@ -45,6 +45,64 @@ if [[ ! -x /usr/bin/xcrun ]]; then
   exit 1
 fi
 
+POPPLER_VENDOR_DIR="$PROJECT_DIR/build/vendor_poppler"
+POPPLER_BIN_DIR="$POPPLER_VENDOR_DIR/bin"
+POPPLER_LIB_DIR="$POPPLER_VENDOR_DIR/lib"
+
+echo "Bundling Poppler tools..."
+rm -rf "$POPPLER_VENDOR_DIR"
+mkdir -p "$POPPLER_BIN_DIR" "$POPPLER_LIB_DIR"
+
+PDFTOTEXT_SOURCE="$(command -v pdftotext || true)"
+PDFTOPPM_SOURCE="$(command -v pdftoppm || true)"
+
+if [[ -z "$PDFTOTEXT_SOURCE" || -z "$PDFTOPPM_SOURCE" ]]; then
+  echo "pdftotext/pdftoppm are missing on this build machine."
+  echo "Install Poppler on the build machine before packaging."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
+  exit 1
+fi
+
+cp "$(realpath "$PDFTOTEXT_SOURCE")" "$POPPLER_BIN_DIR/pdftotext"
+cp "$(realpath "$PDFTOPPM_SOURCE")" "$POPPLER_BIN_DIR/pdftoppm"
+chmod +x "$POPPLER_BIN_DIR/pdftotext" "$POPPLER_BIN_DIR/pdftoppm"
+
+POPPLER_LIB="$(
+  otool -L "$PDFTOTEXT_SOURCE" \
+    | awk '/libpoppler\.[0-9]+\.dylib/ {print $1; exit}'
+)"
+LCMS_LIB="$(
+  otool -L "$PDFTOPPM_SOURCE" \
+    | awk '/liblcms2\.2\.dylib/ {print $1; exit}'
+)"
+
+if [[ -z "$POPPLER_LIB" || -z "$LCMS_LIB" ]]; then
+  echo "Could not locate Poppler runtime libraries."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
+  exit 1
+fi
+
+if [[ "$POPPLER_LIB" == @rpath/* ]]; then
+  POPPLER_LIB="/opt/homebrew/lib/${POPPLER_LIB:t}"
+fi
+
+if [[ "$LCMS_LIB" == @rpath/* ]]; then
+  LCMS_LIB="/opt/homebrew/lib/${LCMS_LIB:t}"
+fi
+
+cp "$(realpath "$POPPLER_LIB")" "$POPPLER_LIB_DIR/libpoppler.161.dylib"
+cp "$(realpath "$LCMS_LIB")" "$POPPLER_LIB_DIR/liblcms2.2.dylib"
+chmod +w "$POPPLER_BIN_DIR/pdftoppm" "$POPPLER_LIB_DIR"/*.dylib
+
+/usr/bin/install_name_tool \
+  -change "$LCMS_LIB" \
+  "@loader_path/../lib/liblcms2.2.dylib" \
+  "$POPPLER_BIN_DIR/pdftoppm"
+
 echo "Compiling Vision OCR helper..."
 /usr/bin/xcrun swiftc -O helpers/vision_ocr.swift -o vision_ocr
 chmod +x vision_ocr

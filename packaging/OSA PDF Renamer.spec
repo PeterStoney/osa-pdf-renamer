@@ -4,6 +4,11 @@ from pathlib import Path
 
 
 PROJECT_DIR = Path.cwd()
+POPPLER_DIR = PROJECT_DIR / "build" / "vendor_poppler"
+
+
+def include_if_exists(path: Path, target: str):
+    return [(str(path), target)] if path.exists() else []
 
 
 a = Analysis(
@@ -11,6 +16,16 @@ a = Analysis(
     pathex=[str(PROJECT_DIR)],
     binaries=[
         (str(PROJECT_DIR / "vision_ocr"), "."),
+        *include_if_exists(POPPLER_DIR / "bin" / "pdftotext", "bin"),
+        *include_if_exists(POPPLER_DIR / "bin" / "pdftoppm", "bin"),
+        *include_if_exists(
+            POPPLER_DIR / "lib" / "libpoppler.161.dylib",
+            "lib",
+        ),
+        *include_if_exists(
+            POPPLER_DIR / "lib" / "liblcms2.2.dylib",
+            "lib",
+        ),
     ],
     datas=[
         (str(PROJECT_DIR / "config.toml"), "."),
@@ -73,4 +88,3 @@ app = BUNDLE(
         "NSHighResolutionCapable": True,
     },
 )
-

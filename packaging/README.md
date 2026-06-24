@@ -17,6 +17,7 @@ The app bundles:
 - default `config.toml`
 - compiled `vision_ocr` helper
 - `helpers/vision_ocr.swift` source for diagnostics/rebuilds
+- Poppler tools used for PDF text extraction/rendering
 
 It does not bundle Ollama or the model. Coworker machines still need Ollama and
 `qwen2.5:7b` installed locally.
@@ -24,8 +25,9 @@ It does not bundle Ollama or the model. Coworker machines still need Ollama and
 The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.
 
-Poppler is not bundled yet. The app will first look for bundled Poppler tools in
-`bin/`, then fall back to `PATH` and `/opt/homebrew/bin`.
+Poppler is bundled by `build_app.command` from the build machine's installed
+`pdftotext` and `pdftoppm`. The app first looks for bundled Poppler tools in
+`bin/`, then falls back to `PATH` and `/opt/homebrew/bin`.
 
 ## Build
 
@@ -129,5 +131,5 @@ It also keeps a copy of the Quick Action template in:
 
 ## Next packaging steps
 
-1. Bundle Poppler binaries or add a friendly first-run Poppler installer check.
+1. Add guided Ollama/model setup.
 2. Add code signing/notarisation if macOS Gatekeeper becomes noisy.

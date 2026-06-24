@@ -57,16 +57,14 @@ patient_pdf_renamer.py
 Coworker Macs should have:
 
 - macOS with Apple Vision OCR support
-- Poppler command line tools:
-  - `pdftotext`
-  - `pdftoppm`
 - Ollama
 - Ollama model:
   - `qwen2.5:7b`
 - Xcode Command Line Tools for rebuilding the Swift Vision helper
 
-The packaged app bundles Python and its Python dependencies. The current
-default assumes the model is available locally through Ollama.
+The packaged app bundles Python, its Python dependencies, Poppler, and the
+compiled Vision helper. The current default assumes the model is available
+locally through Ollama.
 
 ## Configuration
 
