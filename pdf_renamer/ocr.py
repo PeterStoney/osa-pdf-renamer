@@ -8,6 +8,7 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 from .config import (
+    PDFTOPPM_EXECUTABLE,
     PDFTOTEXT_EXECUTABLE,
     VISION_DPI,
     VISION_OCR_EXECUTABLE,
@@ -46,11 +47,17 @@ def has_useful_pdf_text(text: str) -> bool:
 
 
 def render_first_page(pdf_path: Path, dpi: int = 225):
+    poppler_path = None
+    pdftoppm_path = Path(PDFTOPPM_EXECUTABLE)
+    if pdftoppm_path.is_file():
+        poppler_path = str(pdftoppm_path.parent)
+
     pages = convert_from_path(
         str(pdf_path),
         first_page=1,
         last_page=1,
         dpi=dpi,
+        poppler_path=poppler_path,
     )
     return pages[0] if pages else None
 

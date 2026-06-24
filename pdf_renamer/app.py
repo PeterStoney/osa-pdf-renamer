@@ -75,6 +75,8 @@ def main(
             subprocess.run(
                 [OLLAMA_EXECUTABLE, "stop", OLLAMA_MODEL],
                 check=False,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
             )
         except Exception as error:
             print(f"Could not unload Ollama model: {error}")
