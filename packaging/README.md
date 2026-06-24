@@ -40,10 +40,15 @@ If PyInstaller is missing, install it on the build machine only:
 
 Coworkers do not need Python or PyInstaller once the app has been built.
 
+After building, test the bundled launcher without touching PDFs or Ollama:
+
+```bash
+"dist/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer" --self-test
+```
+
 ## Next packaging steps
 
 1. Bundle Poppler binaries or add a friendly first-run Poppler installer check.
 2. Add a Finder Quick Action installer.
 3. Wrap the app and Quick Action in a `.pkg` installer.
 4. Add code signing/notarisation if macOS Gatekeeper becomes noisy.
-

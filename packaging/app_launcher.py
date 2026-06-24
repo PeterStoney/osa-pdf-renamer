@@ -3,6 +3,11 @@
 import subprocess
 import sys
 import json
+from pathlib import Path
+
+PROJECT_DIR = Path(__file__).resolve().parent.parent
+if str(PROJECT_DIR) not in sys.path:
+    sys.path.insert(0, str(PROJECT_DIR))
 
 from pdf_renamer.app import main
 
@@ -27,6 +32,10 @@ def show_dialog(title: str, message: str) -> None:
 
 def launch() -> int:
     args = sys.argv[1:]
+    if args == ["--self-test"]:
+        print("OK: OSA PDF Renamer app launcher is working.")
+        return 0
+
     if not args:
         show_dialog(
             "OSA PDF Renamer",
