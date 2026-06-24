@@ -7,6 +7,7 @@ The intended release shape is:
 
 ```text
 dist/OSA PDF Renamer.app
+~/Library/Services/Rename OSA PDFs.workflow
 ```
 
 The app bundles:
@@ -46,9 +47,37 @@ After building, test the bundled launcher without touching PDFs or Ollama:
 "dist/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer" --self-test
 ```
 
+## Finder Quick Action
+
+The Quick Action template lives at:
+
+```text
+packaging/quick_action/Rename OSA PDFs.workflow
+```
+
+For local beta testing, install it with:
+
+```bash
+packaging/install_quick_action.command
+```
+
+The Quick Action calls:
+
+```text
+/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer
+```
+
+and falls back to:
+
+```text
+~/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer
+```
+
+The final `.pkg` installer should install the app and this workflow together,
+so coworkers do not need to move either item manually.
+
 ## Next packaging steps
 
 1. Bundle Poppler binaries or add a friendly first-run Poppler installer check.
-2. Add a Finder Quick Action installer.
-3. Wrap the app and Quick Action in a `.pkg` installer.
-4. Add code signing/notarisation if macOS Gatekeeper becomes noisy.
+2. Wrap the app and Quick Action in a `.pkg` installer.
+3. Add code signing/notarisation if macOS Gatekeeper becomes noisy.

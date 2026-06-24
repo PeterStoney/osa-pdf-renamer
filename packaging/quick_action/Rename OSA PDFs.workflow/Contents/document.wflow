@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>AMApplicationBuild</key>
+  <string>521</string>
+  <key>AMApplicationVersion</key>
+  <string>2.10</string>
+  <key>AMDocumentVersion</key>
+  <string>2</string>
+  <key>actions</key>
+  <array>
+    <dict>
+      <key>action</key>
+      <dict>
+        <key>AMAccepts</key>
+        <dict>
+          <key>Container</key>
+          <string>List</string>
+          <key>Optional</key>
+          <false/>
+          <key>Types</key>
+          <array>
+            <string>com.apple.cocoa.path</string>
+          </array>
+        </dict>
+        <key>AMActionVersion</key>
+        <string>2.0.3</string>
+        <key>AMApplication</key>
+        <array>
+          <string>Automator</string>
+        </array>
+        <key>AMProvides</key>
+        <dict>
+          <key>Container</key>
+          <string>List</string>
+          <key>Types</key>
+          <array>
+            <string>com.apple.cocoa.path</string>
+          </array>
+        </dict>
+        <key>ActionBundlePath</key>
+        <string>/System/Library/Automator/Run Shell Script.action</string>
+        <key>ActionName</key>
+        <string>Run Shell Script</string>
+        <key>ActionParameters</key>
+        <dict>
+          <key>COMMAND_STRING</key>
+          <string>APP="/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer"
+
+if [[ ! -x "$APP" ]]; then
+  APP="$HOME/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer"
+fi
+
+if [[ ! -x "$APP" ]]; then
+  /usr/bin/osascript -e 'display dialog "OSA PDF Renamer is not installed in /Applications or ~/Applications." with title "OSA PDF Renamer" buttons {"OK"} default button "OK"'
+  exit 1
+fi
+
+"$APP" "$@"</string>
+          <key>CheckedForUserDefaultShell</key>
+          <true/>
+          <key>inputMethod</key>
+          <integer>1</integer>
+          <key>shell</key>
+          <string>/bin/zsh</string>
+        </dict>
+        <key>BundleIdentifier</key>
+        <string>com.apple.RunShellScript</string>
+        <key>CFBundleVersion</key>
+        <string>2.0.3</string>
+        <key>CanShowWhenRun</key>
+        <false/>
+        <key>Class Name</key>
+        <string>RunShellScriptAction</string>
+        <key>InputUUID</key>
+        <string>7E8D6D60-397F-4DD7-8752-5288B2F05A51</string>
+        <key>OutputUUID</key>
+        <string>55435EDB-67E0-41EC-A9BB-0D3E663D2C24</string>
+        <key>UUID</key>
+        <string>D1C9B31F-6086-4F30-A432-A4821F84D3D0</string>
+      </dict>
+      <key>isViewVisible</key>
+      <true/>
+    </dict>
+  </array>
+  <key>connectors</key>
+  <dict/>
+  <key>workflowMetaData</key>
+  <dict>
+    <key>applicationBundleIDsByPath</key>
+    <dict/>
+    <key>applicationPaths</key>
+    <array/>
+    <key>inputTypeIdentifier</key>
+    <string>com.adobe.pdf</string>
+    <key>outputTypeIdentifier</key>
+    <string>com.apple.Automator.nothing</string>
+    <key>presentationMode</key>
+    <integer>15</integer>
+    <key>processesInput</key>
+    <integer>0</integer>
+    <key>serviceInputTypeIdentifier</key>
+    <string>com.adobe.pdf</string>
+    <key>serviceOutputTypeIdentifier</key>
+    <string>com.apple.Automator.nothing</string>
+    <key>serviceProcessesInput</key>
+    <integer>0</integer>
+    <key>workflowTypeIdentifier</key>
+    <string>com.apple.Automator.servicesMenu</string>
+  </dict>
+</dict>
+</plist>
