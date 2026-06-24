@@ -132,6 +132,9 @@ The package builder creates a coworker-facing installer:
 dist/OSA PDF Renamer Installer.pkg
 ```
 
+Builds should use the clean Conda environment defined in
+`packaging/environment.yml`, not the default Conda `base` environment.
+
 ## Tests
 
 Run:

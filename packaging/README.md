@@ -32,17 +32,22 @@ Poppler is bundled by `build_app.command` from the build machine's installed
 
 ## Build
 
-Run from Finder or Terminal:
+Create the clean build environment once:
+
+```bash
+/opt/miniconda3/bin/conda env create -f packaging/environment.yml
+```
+
+If it already exists, update it with:
+
+```bash
+/opt/miniconda3/bin/conda env update -f packaging/environment.yml --prune
+```
+
+Then build from Finder or Terminal:
 
 ```bash
 packaging/build_app.command
-```
-
-The build script expects PyInstaller in the build machine's Python environment.
-If PyInstaller is missing, install it on the build machine only:
-
-```bash
-/opt/miniconda3/bin/python -m pip install pyinstaller
 ```
 
 Coworkers do not need Python or PyInstaller once the app has been built.

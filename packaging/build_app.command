@@ -3,7 +3,12 @@ set -euo pipefail
 
 SCRIPT_DIR=${0:a:h}
 PROJECT_DIR=${SCRIPT_DIR:h}
-PYTHON="/opt/miniconda3/bin/python"
+CONDA_ENV_PYTHON="/opt/miniconda3/envs/osa-pdf-renamer-build/bin/python"
+PYTHON="$CONDA_ENV_PYTHON"
+
+if [[ ! -x "$PYTHON" ]]; then
+  PYTHON="/opt/miniconda3/bin/python"
+fi
 
 if [[ ! -x "$PYTHON" ]]; then
   PYTHON="$(command -v python3)"
@@ -18,8 +23,11 @@ if ! "$PYTHON" -c "import PyInstaller" >/dev/null 2>&1; then
   echo "PyInstaller is not installed in:"
   echo "  $PYTHON"
   echo
-  echo "Install it on this build machine with:"
-  echo "  $PYTHON -m pip install pyinstaller"
+  echo "Create the clean build environment with:"
+  echo "  /opt/miniconda3/bin/conda env create -f packaging/environment.yml"
+  echo
+  echo "Or update it with:"
+  echo "  /opt/miniconda3/bin/conda env update -f packaging/environment.yml --prune"
   echo
   echo "Coworker machines will not need Python or PyInstaller after the app is built."
   echo

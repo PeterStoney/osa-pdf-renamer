@@ -1,0 +1,11 @@
+name: osa-pdf-renamer-build
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pillow
+  - requests
+  - pyinstaller
+  - pip:
+      - pdf2image
