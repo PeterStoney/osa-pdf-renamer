@@ -6,7 +6,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_DIR))
 
-from pdf_renamer.update_check import newer_version_available
+from pdf_renamer.update_check import newer_version_available, versioned_pkg_path
 
 
 def main() -> int:
@@ -26,6 +26,11 @@ def main() -> int:
                 f"expected={expected}, got={actual}"
             )
             return 1
+
+    expected_name = "OSA PDF Renamer Installer 0.2.1.pkg"
+    if versioned_pkg_path("0.2.1").name != expected_name:
+        print("FAIL: unexpected versioned pkg filename")
+        return 1
 
     print("PASS: update version comparison")
     return 0
