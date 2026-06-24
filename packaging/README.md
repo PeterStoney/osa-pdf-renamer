@@ -96,6 +96,10 @@ The installer copies the app to:
 /Applications/OSA PDF Renamer.app
 ```
 
+The package uses `component.plist` to disable macOS bundle relocation, so the
+app is installed into `/Applications` rather than being matched to an older copy
+somewhere else on disk.
+
 and installs the Finder Quick Action for the logged-in user:
 
 ```text

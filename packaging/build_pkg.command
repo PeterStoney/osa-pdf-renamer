@@ -5,11 +5,17 @@ SCRIPT_DIR=${0:a:h}
 PROJECT_DIR=${SCRIPT_DIR:h}
 APP_SOURCE="$PROJECT_DIR/dist/OSA PDF Renamer.app"
 WORKFLOW_SOURCE="$PROJECT_DIR/packaging/quick_action/Rename OSA PDFs.workflow"
-PKG_ROOT="$PROJECT_DIR/build/pkgroot"
-PKG_COMPONENT="$PROJECT_DIR/build/OSA PDF Renamer-component.pkg"
 PKG_OUTPUT="$PROJECT_DIR/dist/OSA PDF Renamer Installer.pkg"
+BUILD_DIR="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/osa-pdf-renamer-pkg.XXXXXX")"
+PKG_ROOT="$BUILD_DIR/pkgroot"
+PKG_COMPONENT="$BUILD_DIR/OSA PDF Renamer-component.pkg"
 APP_TARGET="$PKG_ROOT/Applications"
 SUPPORT_TARGET="$PKG_ROOT/Library/Application Support/OSA PDF Renamer/Quick Actions"
+
+cleanup() {
+  rm -rf "$BUILD_DIR"
+}
+trap cleanup EXIT
 
 echo "Building OSA PDF Renamer Installer.pkg..."
 echo
@@ -37,7 +43,7 @@ if [[ ! -d "$WORKFLOW_SOURCE" ]]; then
   exit 1
 fi
 
-rm -rf "$PKG_ROOT" "$PKG_COMPONENT" "$PKG_OUTPUT"
+rm -f "$PKG_OUTPUT"
 mkdir -p "$APP_TARGET" "$SUPPORT_TARGET" "$PROJECT_DIR/dist"
 
 echo "Staging app..."
@@ -50,6 +56,7 @@ echo "Building component package..."
 /usr/bin/pkgbuild \
   --root "$PKG_ROOT" \
   --scripts "$PROJECT_DIR/packaging/pkg_scripts" \
+  --component-plist "$PROJECT_DIR/packaging/component.plist" \
   --identifier "au.com.osa.pdf-renamer" \
   --version "0.1.0" \
   --install-location "/" \
