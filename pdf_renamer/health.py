@@ -1,9 +1,7 @@
 import importlib.util
 import json
-import queue
 import subprocess
 import sys
-import threading
 import time
 from pathlib import Path
 
@@ -69,90 +67,6 @@ def show_dialog(
     return default_button
 
 
-class MacOSProgress:
-    def __init__(
-        self,
-        title: str,
-        description: str,
-        *,
-        total_steps: int | None = None,
-    ):
-        self.title = title
-        self.description = description
-        self.total_steps = total_steps
-        self.process = None
-        self.events = queue.Queue()
-        self.thread = None
-
-    def __enter__(self):
-        if sys.platform != "darwin":
-            print(f"{self.title}: {self.description}")
-            return self
-
-        max_value = self.total_steps if self.total_steps is not None else -1
-        script = f"""
-on run
-    set progress total steps to {max_value}
-    set progress completed steps to 0
-    set progress description to {json.dumps(self.description)}
-    set progress additional description to "Please wait…"
-
-    repeat
-        delay 0.2
-    end repeat
-end run
-"""
-        try:
-            self.process = subprocess.Popen(
-                ["/usr/bin/osascript", "-e", script],
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-            time.sleep(0.5)
-        except Exception:
-            self.process = None
-        return self
-
-    def update(
-        self,
-        additional_description: str,
-        *,
-        completed_steps: int | None = None,
-    ) -> None:
-        if sys.platform != "darwin" or self.process is None:
-            print(additional_description)
-            return
-
-        lines = [
-            f"set progress additional description to "
-            f"{json.dumps(additional_description)}"
-        ]
-        if completed_steps is not None:
-            lines.append(
-                f"set progress completed steps to {completed_steps}"
-            )
-        try:
-            subprocess.run(
-                ["/usr/bin/osascript", "-e", "\n".join(lines)],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=5,
-                check=False,
-            )
-        except Exception:
-            pass
-
-    def __exit__(self, exc_type, exc, traceback):
-        if self.process and self.process.poll() is None:
-            self.process.terminate()
-            try:
-                self.process.wait(timeout=2)
-            except Exception:
-                self.process.kill()
-        return False
-
-
 def open_url(url: str) -> None:
     if sys.platform == "darwin":
         subprocess.run(["/usr/bin/open", url], check=False)
@@ -179,7 +93,7 @@ def installed_ollama_models() -> set[str]:
     }
 
 
-def start_ollama(progress: MacOSProgress | None = None) -> bool:
+def start_ollama() -> bool:
     """Try to start Ollama and wait until `ollama list` responds."""
     if OLLAMA_APP.is_dir():
         subprocess.run(
@@ -200,27 +114,12 @@ def start_ollama(progress: MacOSProgress | None = None) -> bool:
             return False
 
     deadline = time.monotonic() + OLLAMA_STARTUP_TIMEOUT_SECONDS
-    step = 0
     while time.monotonic() < deadline:
         try:
             if ollama_list().returncode == 0:
-                if progress:
-                    progress.update(
-                        "Ollama is running.",
-                        completed_steps=OLLAMA_STARTUP_TIMEOUT_SECONDS,
-                    )
                 return True
         except Exception:
             pass
-        step += 2
-        if progress:
-            progress.update(
-                "Waiting for Ollama to start…",
-                completed_steps=min(
-                    step,
-                    OLLAMA_STARTUP_TIMEOUT_SECONDS,
-                ),
-            )
         time.sleep(2)
     return False
 
@@ -300,13 +199,11 @@ def ensure_ollama_ready(auto_setup: bool = False) -> list[str]:
 
     if not running:
         if auto_setup:
-            with MacOSProgress(
+            show_dialog(
                 "OSA PDF Renamer setup",
-                "Starting Ollama",
-                total_steps=OLLAMA_STARTUP_TIMEOUT_SECONDS,
-            ) as progress:
-                progress.update("Starting local Ollama runtime…")
-                running = start_ollama(progress=progress)
+                "Starting the bundled local Ollama runtime.",
+            )
+            running = start_ollama()
         if not running:
             errors.append("Ollama is not running")
             return errors
@@ -325,7 +222,6 @@ def ensure_ollama_ready(auto_setup: bool = False) -> list[str]:
             errors.append(f"Ollama model {OLLAMA_MODEL} is not installed")
 
     return errors
-
 
 
 def vision_helper_needs_rebuild() -> bool:
