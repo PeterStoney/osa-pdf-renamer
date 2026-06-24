@@ -39,7 +39,7 @@ def main(
     ]
 
     if health_check and pdf_paths:
-        health_errors = check_dependencies()
+        health_errors = check_dependencies(auto_setup=True)
         if health_errors:
             summary.errors = len(health_errors)
             message = "; ".join(health_errors)

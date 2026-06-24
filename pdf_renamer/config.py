@@ -41,9 +41,10 @@ PDFTOPPM_EXECUTABLE = first_available_executable(
     "pdftoppm",
     "/opt/homebrew/bin/pdftoppm",
 )
-OLLAMA_EXECUTABLE = (
-    shutil.which("ollama")
-    or "/opt/homebrew/bin/ollama"
+OLLAMA_EXECUTABLE = first_available_executable(
+    "ollama",
+    "/Applications/Ollama.app/Contents/Resources/ollama",
+    "/opt/homebrew/bin/ollama",
 )
 
 

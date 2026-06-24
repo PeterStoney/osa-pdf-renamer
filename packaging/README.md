@@ -19,8 +19,9 @@ The app bundles:
 - `helpers/vision_ocr.swift` source for diagnostics/rebuilds
 - Poppler tools used for PDF text extraction/rendering
 
-It does not bundle Ollama or the model. Coworker machines still need Ollama and
-`qwen2.5:7b` installed locally.
+It does not bundle Ollama or the model. Coworker machines still need Ollama
+installed locally. On first run, the app will try to start Ollama and download
+`qwen2.5:7b` if the model is missing.
 
 The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.
@@ -131,5 +132,4 @@ It also keeps a copy of the Quick Action template in:
 
 ## Next packaging steps
 
-1. Add guided Ollama/model setup.
-2. Add code signing/notarisation if macOS Gatekeeper becomes noisy.
+1. Add code signing/notarisation if macOS Gatekeeper becomes noisy.
