@@ -150,6 +150,8 @@ Release process:
 Coworker installs compare their bundled `VERSION` against the latest GitHub
 Release tag and offer to open the release page when a newer version exists.
 
+Current test release: `0.2.1`.
+
 ## Tests
 
 Run:
