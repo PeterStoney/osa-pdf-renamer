@@ -135,6 +135,21 @@ dist/OSA PDF Renamer Installer.pkg
 Builds should use the clean Conda environment defined in
 `packaging/environment.yml`, not the default Conda `base` environment.
 
+## Updates
+
+The installed app checks the public GitHub Releases page for newer versions.
+
+Release process:
+
+1. Update the top-level `VERSION` file.
+2. Run `packaging/build_app.command`.
+3. Run `packaging/build_pkg.command`.
+4. Create a GitHub Release tagged `vX.Y.Z` matching `VERSION`.
+5. Attach `dist/OSA PDF Renamer Installer.pkg` to the release.
+
+Coworker installs compare their bundled `VERSION` against the latest GitHub
+Release tag and offer to open the release page when a newer version exists.
+
 ## Tests
 
 Run:

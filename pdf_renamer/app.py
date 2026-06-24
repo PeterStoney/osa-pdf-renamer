@@ -9,6 +9,7 @@ from .config import (
     NOTIFICATIONS,
     OLLAMA_EXECUTABLE,
     OLLAMA_MODEL,
+    UPDATE_CHECK,
 )
 from .health import check_dependencies
 from .health import format_dependency_report
@@ -17,6 +18,7 @@ from .notifications import (
     send_macos_notification,
     send_text_notification,
 )
+from .update_check import check_for_updates
 from .workflow import rename_pdf
 
 
@@ -27,6 +29,7 @@ def main(
     debug_mode: str = DEBUG_MODE,
     health_check: bool = HEALTH_CHECK,
     notifications: bool = NOTIFICATIONS,
+    update_check: bool = UPDATE_CHECK,
 ):
     arguments = list(sys.argv[1:] if args is None else args)
     summary = BatchSummary()
@@ -38,6 +41,9 @@ def main(
             and Path(argument).suffix.lower() == ".pdf"
         )
     ]
+
+    if update_check and pdf_paths:
+        check_for_updates()
 
     if health_check and pdf_paths:
         health_errors = check_dependencies(auto_setup=True)

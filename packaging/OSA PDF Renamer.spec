@@ -5,6 +5,7 @@ from pathlib import Path
 
 PROJECT_DIR = Path.cwd()
 POPPLER_DIR = PROJECT_DIR / "build" / "vendor_poppler"
+VERSION = (PROJECT_DIR / "VERSION").read_text().strip()
 
 
 def include_if_exists(path: Path, target: str):
@@ -35,6 +36,7 @@ a = Analysis(
     ],
     datas=[
         (str(PROJECT_DIR / "config.toml"), "."),
+        (str(PROJECT_DIR / "VERSION"), "."),
         (str(PROJECT_DIR / "helpers" / "vision_ocr.swift"), "helpers"),
     ],
     hiddenimports=[
@@ -88,8 +90,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleDisplayName": "OSA PDF Renamer",
         "CFBundleName": "OSA PDF Renamer",
-        "CFBundleShortVersionString": "0.1.0",
-        "CFBundleVersion": "0.1.0",
+        "CFBundleShortVersionString": VERSION,
+        "CFBundleVersion": VERSION,
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
     },

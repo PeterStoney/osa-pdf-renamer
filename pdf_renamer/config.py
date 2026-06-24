@@ -63,6 +63,7 @@ def first_available_executable(*candidates: str | Path) -> str:
 
 PROJECT_DIR = resource_dir()
 CONFIG_PATH = PROJECT_DIR / "config.toml"
+VERSION_PATH = PROJECT_DIR / "VERSION"
 VISION_OCR_EXECUTABLE = Path(
     first_available_executable(
         *bundled_executable_candidates("vision_ocr"),
@@ -111,6 +112,12 @@ def load_config(config_path: Path = CONFIG_PATH):
 _CONFIG = load_config()
 _RENAMER = _CONFIG.get("renamer", {})
 _OLLAMA = _CONFIG.get("ollama", {})
+_UPDATES = _CONFIG.get("updates", {})
+
+try:
+    APP_VERSION = VERSION_PATH.read_text(encoding="utf-8").strip()
+except OSError:
+    APP_VERSION = "0.0.0"
 
 DRY_RUN = bool(_RENAMER.get("dry_run", False))
 DEBUG_MODE = str(_RENAMER.get("debug_mode", "failures")).lower()
@@ -123,6 +130,7 @@ if DEBUG_MODE not in {"off", "failures", "all"}:
 VISION_DPI = max(150, min(int(_RENAMER.get("vision_dpi", 225)), 300))
 NOTIFICATIONS = bool(_RENAMER.get("notifications", True))
 HEALTH_CHECK = bool(_RENAMER.get("health_check", True))
+UPDATE_CHECK = bool(_RENAMER.get("update_check", True))
 
 OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:7b"))
 OLLAMA_URL = str(
@@ -130,4 +138,8 @@ OLLAMA_URL = str(
         "url",
         "http://localhost:11434/api/generate",
     )
+)
+
+GITHUB_REPO = str(
+    _UPDATES.get("github_repo", "PeterStoney/osa-pdf-renamer")
 )

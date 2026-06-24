@@ -4,6 +4,10 @@ debug_mode = "off"
 vision_dpi = 225
 notifications = true
 health_check = true
+update_check = true
+
+[updates]
+github_repo = "PeterStoney/osa-pdf-renamer"
 
 [ollama]
 model = "qwen2.5:7b"

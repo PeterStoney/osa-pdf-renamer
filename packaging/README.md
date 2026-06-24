@@ -59,6 +59,8 @@ After building, test the bundled launcher without touching PDFs or Ollama:
 "dist/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer" --self-test
 ```
 
+The app version is read from the top-level `VERSION` file.
+
 ## Finder Quick Action
 
 The Quick Action template lives at:
@@ -135,6 +137,21 @@ It also keeps a copy of the Quick Action template in:
 ```text
 /Library/Application Support/OSA PDF Renamer/Quick Actions/
 ```
+
+## Publishing updates
+
+The app's update checker reads the latest public GitHub Release tag from:
+
+```text
+PeterStoney/osa-pdf-renamer
+```
+
+To publish an update:
+
+1. Bump the top-level `VERSION` file.
+2. Rebuild the app and pkg.
+3. Create a GitHub Release with a matching tag, for example `v0.2.1`.
+4. Attach `dist/OSA PDF Renamer Installer.pkg`.
 
 ## Next packaging steps
 

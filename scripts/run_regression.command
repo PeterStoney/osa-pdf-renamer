@@ -14,6 +14,7 @@ cd "$PROJECT_DIR"
 echo "Running privacy-safe PDF renamer regression tests..."
 echo
 "$PYTHON" tests/run_regression.py
+"$PYTHON" tests/test_update_check.py
 
 echo
 if [[ -t 0 ]]; then

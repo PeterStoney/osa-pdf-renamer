@@ -6,6 +6,7 @@ PROJECT_DIR=${SCRIPT_DIR:h}
 APP_SOURCE="$PROJECT_DIR/dist/OSA PDF Renamer.app"
 WORKFLOW_SOURCE="$PROJECT_DIR/packaging/quick_action/Rename OSA PDFs.workflow"
 PKG_OUTPUT="$PROJECT_DIR/dist/OSA PDF Renamer Installer.pkg"
+VERSION="$(/bin/cat "$PROJECT_DIR/VERSION")"
 BUILD_DIR="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/osa-pdf-renamer-pkg.XXXXXX")"
 PKG_ROOT="$BUILD_DIR/pkgroot"
 PKG_COMPONENT="$BUILD_DIR/OSA PDF Renamer-component.pkg"
@@ -58,7 +59,7 @@ echo "Building component package..."
   --scripts "$PROJECT_DIR/packaging/pkg_scripts" \
   --component-plist "$PROJECT_DIR/packaging/component.plist" \
   --identifier "au.com.osa.pdf-renamer" \
-  --version "0.1.0" \
+  --version "$VERSION" \
   --install-location "/" \
   "$PKG_COMPONENT"
 
