@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import time
@@ -20,6 +21,8 @@ OLLAMA_APP = Path("/Applications/Ollama.app")
 OLLAMA_DOWNLOAD_URL = "https://ollama.com/download/mac"
 OLLAMA_STARTUP_TIMEOUT_SECONDS = 45
 OLLAMA_MODEL_PULL_TIMEOUT_SECONDS = 60 * 60
+OLLAMA_DIR = Path.home() / ".ollama"
+OLLAMA_KEY = OLLAMA_DIR / "id_ed25519"
 
 
 def executable_exists(executable: str) -> bool:
@@ -93,6 +96,68 @@ def installed_ollama_models() -> set[str]:
     }
 
 
+def clean_command_output(text: str) -> str:
+    """Remove terminal progress control codes from command output."""
+    text = re.sub(r"\x1b\[[0-?]*[ -/]*[@-~]", "", text)
+    text = re.sub(r"\r+", "\n", text)
+    lines = [
+        line.strip()
+        for line in text.splitlines()
+        if line.strip()
+    ]
+    return "\n".join(lines[-12:])
+
+
+def ensure_ollama_identity_key() -> str:
+    """Create Ollama's local ed25519 identity key when missing."""
+    if OLLAMA_KEY.is_file():
+        return ""
+
+    try:
+        OLLAMA_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+        OLLAMA_DIR.chmod(0o700)
+    except Exception as error:
+        return f"Could not create {OLLAMA_DIR}: {error}"
+
+    ssh_keygen = Path("/usr/bin/ssh-keygen")
+    if not ssh_keygen.is_file():
+        return "ssh-keygen is missing; cannot create Ollama identity key"
+
+    try:
+        result = subprocess.run(
+            [
+                str(ssh_keygen),
+                "-q",
+                "-t",
+                "ed25519",
+                "-N",
+                "",
+                "-f",
+                str(OLLAMA_KEY),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    except Exception as error:
+        return f"Could not create Ollama identity key: {error}"
+
+    if result.returncode != 0:
+        detail = clean_command_output(result.stderr or result.stdout)
+        return f"Could not create Ollama identity key: {detail}"
+
+    try:
+        OLLAMA_KEY.chmod(0o600)
+        public_key = OLLAMA_KEY.with_suffix(".pub")
+        if public_key.is_file():
+            public_key.chmod(0o644)
+    except Exception:
+        pass
+
+    return ""
+
+
 def start_ollama() -> bool:
     """Try to start Ollama and wait until `ollama list` responds."""
     if OLLAMA_APP.is_dir():
@@ -139,6 +204,10 @@ def pull_ollama_model() -> str:
     if button != "Download":
         return f"Ollama model {OLLAMA_MODEL} download was cancelled"
 
+    key_error = ensure_ollama_identity_key()
+    if key_error:
+        return key_error
+
     command = [OLLAMA_EXECUTABLE, "pull", OLLAMA_MODEL]
     if executable_exists(str(PROGRESS_RUNNER_EXECUTABLE)):
         command = [
@@ -164,15 +233,18 @@ def pull_ollama_model() -> str:
     if result.returncode != 0:
         detail = ""
         if result.stderr or result.stdout:
-            detail = (result.stderr or result.stdout).strip()
-        return f"Could not download Ollama model {OLLAMA_MODEL}: {detail}"
+            detail = clean_command_output(result.stderr or result.stdout)
+        return (
+            f"Could not download Ollama model {OLLAMA_MODEL}.\n"
+            f"Details:\n{detail}"
+        )
 
     if OLLAMA_MODEL not in installed_ollama_models():
-        detail = (result.stderr or result.stdout or "").strip()
+        detail = clean_command_output(result.stderr or result.stdout or "")
         if detail:
             return (
                 f"Ollama reported that {OLLAMA_MODEL} finished downloading, "
-                f"but the model is not installed. Last output: {detail}"
+                f"but the model is not installed.\nDetails:\n{detail}"
             )
         return (
             f"Ollama reported that {OLLAMA_MODEL} finished downloading, "
