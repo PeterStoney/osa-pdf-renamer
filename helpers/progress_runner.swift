@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 import Foundation
 
 final class ProgressRunner: NSObject {
@@ -17,6 +18,7 @@ final class ProgressRunner: NSObject {
     let detailLabel = NSTextField(labelWithString: "")
     let progress = NSProgressIndicator()
     var process: Process?
+    var output = ""
 
     init(title: String, description: String, command: String, arguments: [String]) {
         self.titleText = title
@@ -73,6 +75,8 @@ final class ProgressRunner: NSObject {
             let data = handle.availableData
             guard !data.isEmpty else { return }
             guard let text = String(data: data, encoding: .utf8) else { return }
+            self?.output += text
+            FileHandle.standardError.write(data)
             let line = text
                 .split(whereSeparator: \.isNewline)
                 .last
@@ -87,7 +91,7 @@ final class ProgressRunner: NSObject {
         task.terminationHandler = { task in
             pipe.fileHandleForReading.readabilityHandler = nil
             DispatchQueue.main.async {
-                NSApp.terminate(task.terminationStatus)
+                Darwin.exit(task.terminationStatus)
             }
         }
 

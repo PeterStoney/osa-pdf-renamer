@@ -153,9 +153,7 @@ def pull_ollama_model() -> str:
     try:
         result = subprocess.run(
             command,
-            capture_output=not executable_exists(
-                str(PROGRESS_RUNNER_EXECUTABLE)
-            ),
+            capture_output=True,
             text=True,
             timeout=OLLAMA_MODEL_PULL_TIMEOUT_SECONDS,
             check=False,
@@ -168,6 +166,18 @@ def pull_ollama_model() -> str:
         if result.stderr or result.stdout:
             detail = (result.stderr or result.stdout).strip()
         return f"Could not download Ollama model {OLLAMA_MODEL}: {detail}"
+
+    if OLLAMA_MODEL not in installed_ollama_models():
+        detail = (result.stderr or result.stdout or "").strip()
+        if detail:
+            return (
+                f"Ollama reported that {OLLAMA_MODEL} finished downloading, "
+                f"but the model is not installed. Last output: {detail}"
+            )
+        return (
+            f"Ollama reported that {OLLAMA_MODEL} finished downloading, "
+            "but the model is not installed."
+        )
 
     show_dialog(
         "OSA PDF Renamer setup",
