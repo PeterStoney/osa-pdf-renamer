@@ -1,12 +1,30 @@
 import subprocess
 import sys
 
+from .config import NOTIFICATION_RUNNER_EXECUTABLE
 from .models import BatchSummary
 
 
 def send_text_notification(title: str, message: str):
     if sys.platform != "darwin":
         return
+
+    if NOTIFICATION_RUNNER_EXECUTABLE.is_file():
+        try:
+            subprocess.run(
+                [
+                    str(NOTIFICATION_RUNNER_EXECUTABLE),
+                    title,
+                    message,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return
+        except Exception as error:
+            print(f"native macOS notification failed: {error}")
 
     def escape(value: str) -> str:
         return value.replace("\\", "\\\\").replace('"', '\\"')

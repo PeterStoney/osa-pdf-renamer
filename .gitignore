@@ -14,6 +14,7 @@ venv/
 # Local build artifacts
 vision_ocr
 progress_runner
+notification_runner
 build/
 dist/
 *.egg-info/

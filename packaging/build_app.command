@@ -139,6 +139,10 @@ echo "Compiling progress helper..."
 /usr/bin/xcrun swiftc -O helpers/progress_runner.swift -o progress_runner
 chmod +x progress_runner
 
+echo "Compiling notification helper..."
+/usr/bin/xcrun swiftc -O helpers/notification_runner.swift -o notification_runner
+chmod +x notification_runner
+
 echo "Running PyInstaller..."
 "$PYTHON" -m PyInstaller --noconfirm "packaging/OSA PDF Renamer.spec"
 
