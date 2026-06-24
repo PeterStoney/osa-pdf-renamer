@@ -1,0 +1,39 @@
+#!/bin/zsh
+set -euo pipefail
+
+APP_SUPPORT="/Library/Application Support/OSA PDF Renamer"
+WORKFLOW_SOURCE="$APP_SUPPORT/Quick Actions/Rename OSA PDFs.workflow"
+
+console_user="$(/usr/bin/stat -f %Su /dev/console || true)"
+
+if [[ -z "$console_user" || "$console_user" == "root" || "$console_user" == "loginwindow" ]]; then
+  console_user="${SUDO_USER:-}"
+fi
+
+if [[ -z "$console_user" || "$console_user" == "root" ]]; then
+  echo "Could not determine logged-in user; Quick Action template remains in $APP_SUPPORT"
+  exit 0
+fi
+
+home_dir="$(/usr/bin/dscl . -read "/Users/$console_user" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')"
+
+if [[ -z "$home_dir" || ! -d "$home_dir" ]]; then
+  echo "Could not determine home directory for $console_user; Quick Action template remains in $APP_SUPPORT"
+  exit 0
+fi
+
+services_dir="$home_dir/Library/Services"
+target_workflow="$services_dir/Rename OSA PDFs.workflow"
+
+if [[ ! -d "$WORKFLOW_SOURCE" ]]; then
+  echo "Quick Action template missing: $WORKFLOW_SOURCE"
+  exit 0
+fi
+
+/bin/mkdir -p "$services_dir"
+/bin/rm -rf "$target_workflow"
+/bin/cp -R "$WORKFLOW_SOURCE" "$target_workflow"
+/usr/sbin/chown -R "$console_user":staff "$target_workflow"
+
+echo "Installed Finder Quick Action for $console_user: $target_workflow"
+

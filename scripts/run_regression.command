@@ -16,5 +16,6 @@ echo
 "$PYTHON" tests/run_regression.py
 
 echo
-read -k 1 "?Press any key to close."
-
+if [[ -t 0 ]]; then
+  read -k 1 "?Press any key to close."
+fi

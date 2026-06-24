@@ -120,6 +120,12 @@ Build notes are in `packaging/README.md`.
 The Finder Quick Action template is also in `packaging/`, ready to be included
 in the eventual main installer.
 
+The package builder creates a coworker-facing installer:
+
+```text
+dist/OSA PDF Renamer Installer.pkg
+```
+
 ## Tests
 
 Run:

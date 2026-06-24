@@ -24,5 +24,6 @@ print("OK: Vision OCR helper is ready.")
 PY
 
 echo
-read -k 1 "?Press any key to close."
-
+if [[ -t 0 ]]; then
+  read -k 1 "?Press any key to close."
+fi

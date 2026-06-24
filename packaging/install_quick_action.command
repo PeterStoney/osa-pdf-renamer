@@ -14,7 +14,9 @@ if [[ ! -d "$SOURCE_WORKFLOW" ]]; then
   echo "Missing workflow template:"
   echo "  $SOURCE_WORKFLOW"
   echo
-  read -k 1 "?Press any key to close."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
   exit 1
 fi
 
@@ -39,5 +41,6 @@ echo "  3. Enable Rename OSA PDFs"
 echo
 echo "Use it by selecting PDFs in Finder, right-clicking, then choosing Quick Actions > Rename OSA PDFs."
 echo
-read -k 1 "?Press any key to close."
-
+if [[ -t 0 ]]; then
+  read -k 1 "?Press any key to close."
+fi

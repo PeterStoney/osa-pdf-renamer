@@ -76,8 +76,39 @@ and falls back to:
 The final `.pkg` installer should install the app and this workflow together,
 so coworkers do not need to move either item manually.
 
+## Installer package
+
+After building the app, create the coworker-facing installer with:
+
+```bash
+packaging/build_pkg.command
+```
+
+This creates:
+
+```text
+dist/OSA PDF Renamer Installer.pkg
+```
+
+The installer copies the app to:
+
+```text
+/Applications/OSA PDF Renamer.app
+```
+
+and installs the Finder Quick Action for the logged-in user:
+
+```text
+~/Library/Services/Rename OSA PDFs.workflow
+```
+
+It also keeps a copy of the Quick Action template in:
+
+```text
+/Library/Application Support/OSA PDF Renamer/Quick Actions/
+```
+
 ## Next packaging steps
 
 1. Bundle Poppler binaries or add a friendly first-run Poppler installer check.
-2. Wrap the app and Quick Action in a `.pkg` installer.
-3. Add code signing/notarisation if macOS Gatekeeper becomes noisy.
+2. Add code signing/notarisation if macOS Gatekeeper becomes noisy.

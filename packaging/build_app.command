@@ -23,19 +23,25 @@ if ! "$PYTHON" -c "import PyInstaller" >/dev/null 2>&1; then
   echo
   echo "Coworker machines will not need Python or PyInstaller after the app is built."
   echo
-  read -k 1 "?Press any key to close."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
   exit 1
 fi
 
 if [[ ! -f helpers/vision_ocr.swift ]]; then
   echo "Missing helpers/vision_ocr.swift"
-  read -k 1 "?Press any key to close."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
   exit 1
 fi
 
 if [[ ! -x /usr/bin/xcrun ]]; then
   echo "xcrun is missing. Install Xcode Command Line Tools first."
-  read -k 1 "?Press any key to close."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
   exit 1
 fi
 
@@ -50,5 +56,6 @@ echo
 echo "Built:"
 echo "  $PROJECT_DIR/dist/OSA PDF Renamer.app"
 echo
-read -k 1 "?Press any key to close."
-
+if [[ -t 0 ]]; then
+  read -k 1 "?Press any key to close."
+fi
