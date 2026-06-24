@@ -6,12 +6,46 @@ from pathlib import Path
 UNKNOWN = "unknown"
 
 
-def resource_dir() -> Path:
-    """Return project resources in source checkout or PyInstaller app."""
+def bundle_search_dirs() -> tuple[Path, ...]:
+    """Return likely resource/binary directories in source or PyInstaller app."""
     bundled_dir = getattr(sys, "_MEIPASS", None)
     if getattr(sys, "frozen", False) and bundled_dir:
-        return Path(bundled_dir)
-    return Path(__file__).resolve().parent.parent
+        base = Path(bundled_dir)
+        candidates = (
+            base,
+            base / "Resources",
+            base / "Frameworks",
+            base.parent / "Resources",
+            base.parent / "Frameworks",
+        )
+    else:
+        base = Path(__file__).resolve().parent.parent
+        candidates = (base,)
+
+    seen = set()
+    dirs = []
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        dirs.append(candidate)
+    return tuple(dirs)
+
+
+def resource_dir() -> Path:
+    """Return the directory containing config/data resources."""
+    for directory in bundle_search_dirs():
+        if (directory / "config.toml").is_file():
+            return directory
+    return bundle_search_dirs()[0]
+
+
+def bundled_executable_candidates(name: str) -> tuple[Path, ...]:
+    candidates = []
+    for directory in bundle_search_dirs():
+        candidates.append(directory / name)
+        candidates.append(directory / "bin" / name)
+    return tuple(candidates)
 
 
 def first_available_executable(*candidates: str | Path) -> str:
@@ -29,21 +63,31 @@ def first_available_executable(*candidates: str | Path) -> str:
 
 PROJECT_DIR = resource_dir()
 CONFIG_PATH = PROJECT_DIR / "config.toml"
-VISION_OCR_EXECUTABLE = PROJECT_DIR / "vision_ocr"
+VISION_OCR_EXECUTABLE = Path(
+    first_available_executable(
+        *bundled_executable_candidates("vision_ocr"),
+        "vision_ocr",
+    )
+)
 VISION_OCR_SOURCE = PROJECT_DIR / "helpers" / "vision_ocr.swift"
-PROGRESS_RUNNER_EXECUTABLE = PROJECT_DIR / "progress_runner"
+PROGRESS_RUNNER_EXECUTABLE = Path(
+    first_available_executable(
+        *bundled_executable_candidates("progress_runner"),
+        "progress_runner",
+    )
+)
 PDFTOTEXT_EXECUTABLE = first_available_executable(
-    PROJECT_DIR / "bin" / "pdftotext",
+    *bundled_executable_candidates("pdftotext"),
     "pdftotext",
     "/opt/homebrew/bin/pdftotext",
 )
 PDFTOPPM_EXECUTABLE = first_available_executable(
-    PROJECT_DIR / "bin" / "pdftoppm",
+    *bundled_executable_candidates("pdftoppm"),
     "pdftoppm",
     "/opt/homebrew/bin/pdftoppm",
 )
 OLLAMA_EXECUTABLE = first_available_executable(
-    PROJECT_DIR / "bin" / "ollama",
+    *bundled_executable_candidates("ollama"),
     "ollama",
     "/Applications/Ollama.app/Contents/Resources/ollama",
     "/opt/homebrew/bin/ollama",

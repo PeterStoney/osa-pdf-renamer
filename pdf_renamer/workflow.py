@@ -14,6 +14,12 @@ def rename_pdf(
     debug_mode: str = "failures",
 ) -> RenameResult:
     text = extract_document_text(pdf_path)
+    if not text.strip():
+        raise RuntimeError(
+            "No text could be extracted from the first page. "
+            "Check PDF rendering, Vision OCR, and app permissions."
+        )
+
     details = extract_document_details_with_ollama(text)
 
     base_name = build_filename(
