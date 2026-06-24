@@ -107,9 +107,14 @@ final class ProgressRunner: NSObject {
             with: "",
             options: .regularExpression
         )
+        cleaned = cleaned.replacingOccurrences(
+            of: #"\[[0-?]*[ -/]*[@-~]"#,
+            with: "",
+            options: .regularExpression
+        )
         cleaned = cleaned.replacingOccurrences(of: "\r", with: "\n")
         cleaned = cleaned.replacingOccurrences(
-            of: #"[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏█▉▊▋▌▍▎▏░▒▓■□▪▫]+"#,
+            of: #"[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏█▉▊▋▌▍▎▏░▒▓■□▪▫◼◻◾◽]+"#,
             with: "",
             options: .regularExpression
         )
