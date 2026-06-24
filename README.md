@@ -67,7 +67,7 @@ locally through Ollama.
 
 The packaged app starts its bundled Ollama runtime automatically. If
 `qwen2.5:7b` is missing, the app will prompt once and download the model locally
-with `ollama pull qwen2.5:7b`.
+with `ollama pull qwen2.5:7b` while showing a native progress window.
 
 ## Configuration
 
