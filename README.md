@@ -33,10 +33,18 @@ Regression tests must use fictional patient details only.
 
 The normal workflow is through a Finder Automator Quick Action:
 
-1. Select one or more PDFs in Finder.
-2. Run the PDF renaming Quick Action.
-3. Wait for the completion notification.
-4. Review any files ending in `- Unknown` or starting with `unknown -`.
+1. Install `OSA PDF Renamer Installer.pkg`.
+2. Enable the Quick Action once:
+   - Right-click any PDF in Finder.
+   - Choose `Quick Actions > Customize…`.
+   - Tick `Rename OSA PDFs`.
+3. Select one or more PDFs in Finder.
+4. Run `Quick Actions > Rename OSA PDFs`.
+5. Wait for the completion notification.
+6. Review any files ending in `- Unknown` or starting with `unknown -`.
+
+macOS commonly requires the one-time `Customize…` step for Automator Quick
+Actions installed by a package rather than created manually in Automator.
 
 The Automator entry point is:
 
@@ -49,11 +57,6 @@ patient_pdf_renamer.py
 Coworker Macs should have:
 
 - macOS with Apple Vision OCR support
-- Python 3
-- Python packages:
-  - `requests`
-  - `pdf2image`
-  - `Pillow`
 - Poppler command line tools:
   - `pdftotext`
   - `pdftoppm`
@@ -62,7 +65,8 @@ Coworker Macs should have:
   - `qwen2.5:7b`
 - Xcode Command Line Tools for rebuilding the Swift Vision helper
 
-The current default assumes the model is available locally through Ollama.
+The packaged app bundles Python and its Python dependencies. The current
+default assumes the model is available locally through Ollama.
 
 ## Configuration
 

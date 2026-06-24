@@ -76,6 +76,15 @@ and falls back to:
 The final `.pkg` installer should install the app and this workflow together,
 so coworkers do not need to move either item manually.
 
+macOS may not show a packaged Automator Quick Action immediately. On first use,
+the user may need to enable it once:
+
+1. Right-click any PDF in Finder.
+2. Choose `Quick Actions > Customize…`.
+3. Tick `Rename OSA PDFs`.
+
+After that, it should remain available from Finder's Quick Actions menu.
+
 ## Installer package
 
 After building the app, create the coworker-facing installer with:
@@ -105,6 +114,9 @@ and installs the Finder Quick Action for the logged-in user:
 ```text
 ~/Library/Services/Rename OSA PDFs.workflow
 ```
+
+The installer shows a best-effort first-use reminder explaining the one-time
+`Quick Actions > Customize…` enablement step.
 
 It also keeps a copy of the Quick Action template in:
 
