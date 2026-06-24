@@ -1,0 +1,28 @@
+# macOS / editor noise
+.DS_Store
+.vscode/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local build artifacts
+vision_ocr
+build/
+dist/
+*.egg-info/
+
+# Patient documents and generated review files
+*.pdf
+*.debug.txt
+*.ocr.txt
+
+# Local/private overrides
+config.local.toml
+.env
+.env.*

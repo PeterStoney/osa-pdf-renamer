@@ -1,0 +1,80 @@
+[
+  {
+    "name": "OSA registration form with first name on next line",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nstoney.admin@osa.melbourne\nPersonal Details\nSurname: SAMPLE\nFirst Name: _\nALEX\nDate of Birth: 01/01/1970\nEmergency Contact\nName: TAYLOR SAMPLE\nRelationship to patient: PARTNER\nAccount Details\nMedicare Number\nPrivate Health Insurance\nCorrespondence Details",
+    "patient_name": "Alex Sample",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "OSA registration form with surname on next line",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname:.\nNORTH FIELD\nFirst Name: JORDAN\nDate of Birth: 02/02/1972\nEmergency Contact\nName: CASEY FIELD\nRelationship to patient: FRIEND\nAccount Details\nMedicare Number\nCorrespondence Details",
+    "patient_name": "Jordan North Field",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "Specialist referral using thanks very much for seeing",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nDr Example Specialist\nDear Surgeon,\nRe: Mrs Morgan Example\nDOB: 03/03/1973\nThanks very much for seeing Morgan. Morgan has progressive left hip osteoarthritis and I feel the best option is to discuss joint replacement.\nKindest Regards,\nDr Example Specialist",
+    "patient_name": "Morgan Example",
+    "document_type": "Referral"
+  },
+  {
+    "name": "OSA registration ignores emergency contact after OCR digit error",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname: F1ELD\nFirst Name: MORGAN\nDate of Birth: 04/04/1974\nEmergency Contact\nName: TAYLOR CONTACT\nRelationship to patient: DAUGHTER\nAccount Details\nMedicare Number\nCorrespondence Details",
+    "patient_name": "Morgan Field",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "Referral patient aligned to the right of RE label",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nA/Professor Avery Clinician\nRheumatologist\nMr Jordan Surgeon\nDear Mr Surgeon\nRE:\nDOB:\nMrs Morgan Person\n04/04/1974\nThank you for seeing Morgan\n===== STRUCTURED VISION OCR LINES =====\n[{\"text\":\"A/Professor Avery Clinician\",\"x\":0.13,\"y\":0.88,\"width\":0.3,\"height\":0.02,\"confidence\":1.0},{\"text\":\"Mr Jordan Surgeon\",\"x\":0.18,\"y\":0.70,\"width\":0.14,\"height\":0.02,\"confidence\":1.0},{\"text\":\"Dear Mr Surgeon\",\"x\":0.14,\"y\":0.63,\"width\":0.12,\"height\":0.01,\"confidence\":1.0},{\"text\":\"RE:\",\"x\":0.18,\"y\":0.60,\"width\":0.03,\"height\":0.01,\"confidence\":1.0},{\"text\":\"Mrs Morgan Person\",\"x\":0.27,\"y\":0.60,\"width\":0.15,\"height\":0.01,\"confidence\":1.0},{\"text\":\"DOB:\",\"x\":0.18,\"y\":0.58,\"width\":0.04,\"height\":0.01,\"confidence\":1.0},{\"text\":\"04/04/1974\",\"x\":0.27,\"y\":0.58,\"width\":0.09,\"height\":0.01,\"confidence\":1.0}]",
+    "patient_name": "Morgan Person",
+    "document_type": "Referral"
+  },
+  {
+    "name": "Embedded-text MRI heading ending with punctuation",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDate of Birth: January 1, 1970\nProcedure Description: MRI RT KNEE\nEXAMINATION:\nMRI right knee.\nCLINICAL:\nAcute sporting injury.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
+  },
+  {
+    "name": "Spaced X RAY heading retains body part",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nRe: Ms ALEX SAMPLE - DOB: January 1, 1970\nX RAY LEFT KNEE\nMild medial compartment osteoarthritis.",
+    "patient_name": "Alex Sample",
+    "document_type": "X-ray left knee"
+  },
+  {
+    "name": "Referral mentioning MRI remains a referral",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nDear Surgeon,\nRE: Mr ALEX SAMPLE\nDOB: 01/01/1970\nThank you for seeing Alex for management of right hip osteoarthritis. He previously had an MRI showing severe hip OA.",
+    "patient_name": "Alex Sample",
+    "document_type": "Referral"
+  },
+  {
+    "name": "OSA registration with missing surname ignores emergency contact",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname:\nFirst Name:\nALEX\nDate of Birth: 01/01/1970\nEmergency Conta\nName:\nTAYLOR CONTACT\nRelationship to patient: MOTHER\nAccount Details\nMedicare Number\nCorrespondence Details",
+    "patient_name": "unknown",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "Radiology name and DOB followed by Patient ID on same line",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nRADIOLOGY EXAMPLE\nALEX SAMPLE ( 1/1/1970 )                                     Patient ID : ABC123\nService Date: 01/06/2026\nUS LEFT KNEE\nFindings:",
+    "patient_name": "Alex Sample",
+    "document_type": "Ultrasound left knee"
+  },
+  {
+    "name": "OSA registration recovers missing surname from matching email",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname:\nFirst Name:\nALEX\nDate of Birth: 01/01/1970\nEmail: alexsample08@gmail.com\nEmergency Contact\nName:\nTAYLOR CONTACT\nRelationship to patient: MOTHER\nAccount Details\nMedicare Number\nCorrespondence Details",
+    "patient_name": "Alex Sample",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "OSA registration uses targeted name-row OCR",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname:\nFirst Name:\nALEX\nDate of Birth: 01/01/1970\nEmergency Contact\nName:\nTAYLOR CONTACT\nRelationship to patient: MOTHER\nAccount Details\nMedicare Number\nCorrespondence Details\n===== TARGETED OSA NAME OCR =====\nSurname: SAMPLE\nFirst Name: ALEX",
+    "patient_name": "Alex Sample",
+    "document_type": "Reg form"
+  },
+  {
+    "name": "OSA registration ignores a form-line underscore before first name",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nOrthopaedics Sports Arthroplasty\nOSA Unit Trust\nwww.osa.melbourne\nPersonal Details\nSurname: EXAMPLE\nFirst Name: _MORGAN\nDate of Birth: 05/05/1975\nEmail: morganexample@example.com\nEmergency Contact\nName: TAYLOR CONTACT\nRelationship to patient: PARTNER\nAccount Details\nMedicare Number\nCorrespondence Details",
+    "patient_name": "Morgan Example",
+    "document_type": "Reg form"
+  }
+]

@@ -1,0 +1,10 @@
+[renamer]
+dry_run = false
+debug_mode = "failures"
+vision_dpi = 225
+notifications = true
+health_check = true
+
+[ollama]
+model = "qwen2.5:7b"
+url = "http://localhost:11434/api/generate"
