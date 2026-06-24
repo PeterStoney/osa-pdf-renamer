@@ -21,6 +21,9 @@ The app bundles:
 It does not bundle Ollama or the model. Coworker machines still need Ollama and
 `qwen2.5:7b` installed locally.
 
+The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
+clean coworker operation.
+
 Poppler is not bundled yet. The app will first look for bundled Poppler tools in
 `bin/`, then fall back to `PATH` and `/opt/homebrew/bin`.
 

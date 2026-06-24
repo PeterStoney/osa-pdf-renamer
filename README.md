@@ -75,7 +75,7 @@ Edit `config.toml`:
 ```toml
 [renamer]
 dry_run = false
-debug_mode = "failures"
+debug_mode = "off"
 vision_dpi = 225
 notifications = true
 health_check = true
@@ -93,8 +93,9 @@ Useful options:
 - `notifications`: show macOS batch completion notifications.
 - `health_check`: verify dependencies before processing.
 
-With `debug_mode = "failures"`, debug files are written only when the final
-patient name or document type needs review.
+The packaged coworker default is `debug_mode = "off"` for clean operation. Use
+`debug_mode = "failures"` only when deliberately troubleshooting a problematic
+document.
 
 ## Helper scripts
 

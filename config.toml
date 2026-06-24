@@ -1,6 +1,6 @@
 [renamer]
 dry_run = false
-debug_mode = "failures"
+debug_mode = "off"
 vision_dpi = 225
 notifications = true
 health_check = true
