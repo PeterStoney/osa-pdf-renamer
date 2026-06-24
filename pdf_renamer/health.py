@@ -189,7 +189,7 @@ def ensure_ollama_ready(auto_setup: bool = False) -> list[str]:
         if auto_setup:
             show_dialog("OSA PDF Renamer setup", message)
             open_url(OLLAMA_DOWNLOAD_URL)
-        errors.append("Ollama is missing")
+        errors.append(f"Ollama runtime is missing at {OLLAMA_EXECUTABLE}")
         return errors
 
     try:
@@ -205,7 +205,10 @@ def ensure_ollama_ready(auto_setup: bool = False) -> list[str]:
             )
             running = start_ollama()
         if not running:
-            errors.append("Ollama is not running")
+            errors.append(
+                "Ollama runtime could not be started. "
+                f"Expected executable: {OLLAMA_EXECUTABLE}"
+            )
             return errors
 
     models = installed_ollama_models()
@@ -280,16 +283,40 @@ def check_dependencies(auto_setup: bool = False):
                 f"Python package {package_name} is missing"
             )
     if not executable_exists(PDFTOTEXT_EXECUTABLE):
-        errors.append("pdftotext is missing")
+        errors.append(f"pdftotext is missing at {PDFTOTEXT_EXECUTABLE}")
     if not executable_exists(PDFTOPPM_EXECUTABLE):
-        errors.append("pdftoppm/Poppler is missing")
+        errors.append(f"pdftoppm/Poppler is missing at {PDFTOPPM_EXECUTABLE}")
 
     rebuild_error = rebuild_vision_helper()
     if rebuild_error:
         errors.append(rebuild_error)
     elif not executable_exists(str(VISION_OCR_EXECUTABLE)):
-        errors.append("Vision OCR helper is missing")
+        errors.append(f"Vision OCR helper is missing at {VISION_OCR_EXECUTABLE}")
 
     errors.extend(ensure_ollama_ready(auto_setup=auto_setup))
 
     return errors
+
+
+def format_dependency_report(errors: list[str]) -> str:
+    """Build a coworker-friendly dependency failure report."""
+    if not errors:
+        return ""
+
+    numbered_errors = "\n".join(
+        f"{index}. {error}"
+        for index, error in enumerate(errors, start=1)
+    )
+    return (
+        "OSA PDF Renamer cannot safely process these PDFs because one or "
+        "more local components are unavailable.\n\n"
+        f"Problems found:\n{numbered_errors}\n\n"
+        "What to try:\n"
+        "1. Reinstall the latest OSA PDF Renamer package.\n"
+        "2. Make sure the app is installed in /Applications.\n"
+        "3. If this is the first run, keep the Mac online while the local "
+        "AI model downloads.\n"
+        "4. If this message appears again, send Peter a screenshot of "
+        "this popup.\n\n"
+        "No PDFs were renamed."
+    )

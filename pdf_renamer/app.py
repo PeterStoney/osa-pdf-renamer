@@ -11,6 +11,7 @@ from .config import (
     OLLAMA_MODEL,
 )
 from .health import check_dependencies
+from .health import format_dependency_report
 from .models import BatchSummary
 from .notifications import (
     send_macos_notification,
@@ -42,7 +43,7 @@ def main(
         health_errors = check_dependencies(auto_setup=True)
         if health_errors:
             summary.errors = len(health_errors)
-            message = "; ".join(health_errors)
+            message = format_dependency_report(health_errors)
             print(f"PDF Renamer dependency check failed: {message}")
             if notifications:
                 send_text_notification(
