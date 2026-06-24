@@ -1,20 +1,45 @@
 import shutil
+import sys
 import tomllib
 from pathlib import Path
 
 UNKNOWN = "unknown"
 
-PROJECT_DIR = Path(__file__).resolve().parent.parent
+
+def resource_dir() -> Path:
+    """Return project resources in source checkout or PyInstaller app."""
+    bundled_dir = getattr(sys, "_MEIPASS", None)
+    if getattr(sys, "frozen", False) and bundled_dir:
+        return Path(bundled_dir)
+    return Path(__file__).resolve().parent.parent
+
+
+def first_available_executable(*candidates: str | Path) -> str:
+    for candidate in candidates:
+        if not candidate:
+            continue
+        path = Path(candidate)
+        if path.is_file():
+            return str(path)
+        resolved = shutil.which(str(candidate))
+        if resolved:
+            return resolved
+    return str(candidates[-1])
+
+
+PROJECT_DIR = resource_dir()
 CONFIG_PATH = PROJECT_DIR / "config.toml"
 VISION_OCR_EXECUTABLE = PROJECT_DIR / "vision_ocr"
 VISION_OCR_SOURCE = PROJECT_DIR / "helpers" / "vision_ocr.swift"
-PDFTOTEXT_EXECUTABLE = (
-    shutil.which("pdftotext")
-    or "/opt/homebrew/bin/pdftotext"
+PDFTOTEXT_EXECUTABLE = first_available_executable(
+    PROJECT_DIR / "bin" / "pdftotext",
+    "pdftotext",
+    "/opt/homebrew/bin/pdftotext",
 )
-PDFTOPPM_EXECUTABLE = (
-    shutil.which("pdftoppm")
-    or "/opt/homebrew/bin/pdftoppm"
+PDFTOPPM_EXECUTABLE = first_available_executable(
+    PROJECT_DIR / "bin" / "pdftoppm",
+    "pdftoppm",
+    "/opt/homebrew/bin/pdftoppm",
 )
 OLLAMA_EXECUTABLE = (
     shutil.which("ollama")

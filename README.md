@@ -102,6 +102,21 @@ Double-clickable scripts live in `scripts/`:
 
 These scripts are intended for setup/support rather than everyday use.
 
+## macOS app packaging
+
+The `packaging/` folder contains the PyInstaller scaffold for building a
+shareable macOS app:
+
+```text
+dist/OSA PDF Renamer.app
+```
+
+The packaged app is intended for coworkers who do not have Python installed.
+It bundles the Python runtime and this project code, but still expects Ollama
+and the configured local model to be installed on the Mac.
+
+Build notes are in `packaging/README.md`.
+
 ## Tests
 
 Run:
@@ -123,6 +138,7 @@ pdf_renamer/                 Application package
 tests/                       Privacy-safe regression suite
 scripts/                     Coworker/setup helper scripts
 helpers/                     Helper source files used by the runtime
+packaging/                   PyInstaller macOS app packaging scaffold
 ```
 
 Key package modules:
