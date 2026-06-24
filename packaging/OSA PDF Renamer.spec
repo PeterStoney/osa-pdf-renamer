@@ -26,6 +26,10 @@ a = Analysis(
             POPPLER_DIR / "lib" / "liblcms2.2.dylib",
             "lib",
         ),
+        *include_if_exists(
+            PROJECT_DIR / "build" / "vendor_ollama" / "bin" / "ollama",
+            "bin",
+        ),
     ],
     datas=[
         (str(PROJECT_DIR / "config.toml"), "."),

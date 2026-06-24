@@ -57,19 +57,17 @@ patient_pdf_renamer.py
 Coworker Macs should have:
 
 - macOS with Apple Vision OCR support
-- Ollama
 - Ollama model:
   - `qwen2.5:7b`
 - Xcode Command Line Tools for rebuilding the Swift Vision helper
 
-The packaged app bundles Python, its Python dependencies, Poppler, and the
-compiled Vision helper. The current default assumes the model is available
+The packaged app bundles Python, its Python dependencies, Poppler, Ollama, and
+the compiled Vision helper. The current default assumes the model is available
 locally through Ollama.
 
-If Ollama is installed but not running, the packaged app will try to start it
-automatically. If `qwen2.5:7b` is missing, the app will prompt once and download
-the model locally with `ollama pull qwen2.5:7b`. If Ollama itself is missing,
-the app opens the Ollama download page.
+The packaged app starts its bundled Ollama runtime automatically. If
+`qwen2.5:7b` is missing, the app will prompt once and download the model locally
+with `ollama pull qwen2.5:7b`.
 
 ## Configuration
 

@@ -42,6 +42,7 @@ PDFTOPPM_EXECUTABLE = first_available_executable(
     "/opt/homebrew/bin/pdftoppm",
 )
 OLLAMA_EXECUTABLE = first_available_executable(
+    PROJECT_DIR / "bin" / "ollama",
     "ollama",
     "/Applications/Ollama.app/Contents/Resources/ollama",
     "/opt/homebrew/bin/ollama",

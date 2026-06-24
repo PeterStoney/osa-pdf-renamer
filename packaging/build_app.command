@@ -103,6 +103,26 @@ chmod +w "$POPPLER_BIN_DIR/pdftoppm" "$POPPLER_LIB_DIR"/*.dylib
   "@loader_path/../lib/liblcms2.2.dylib" \
   "$POPPLER_BIN_DIR/pdftoppm"
 
+OLLAMA_VENDOR_DIR="$PROJECT_DIR/build/vendor_ollama"
+OLLAMA_BIN_DIR="$OLLAMA_VENDOR_DIR/bin"
+
+echo "Bundling Ollama runtime..."
+rm -rf "$OLLAMA_VENDOR_DIR"
+mkdir -p "$OLLAMA_BIN_DIR"
+
+OLLAMA_SOURCE="$(command -v ollama || true)"
+if [[ -z "$OLLAMA_SOURCE" ]]; then
+  echo "Ollama is missing on this build machine."
+  echo "Install Ollama on the build machine before packaging."
+  if [[ -t 0 ]]; then
+    read -k 1 "?Press any key to close."
+  fi
+  exit 1
+fi
+
+cp "$(realpath "$OLLAMA_SOURCE")" "$OLLAMA_BIN_DIR/ollama"
+chmod +x "$OLLAMA_BIN_DIR/ollama"
+
 echo "Compiling Vision OCR helper..."
 /usr/bin/xcrun swiftc -O helpers/vision_ocr.swift -o vision_ocr
 chmod +x vision_ocr

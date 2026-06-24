@@ -18,10 +18,10 @@ The app bundles:
 - compiled `vision_ocr` helper
 - `helpers/vision_ocr.swift` source for diagnostics/rebuilds
 - Poppler tools used for PDF text extraction/rendering
+- Ollama runtime used to run the local model
 
-It does not bundle Ollama or the model. Coworker machines still need Ollama
-installed locally. On first run, the app will try to start Ollama and download
-`qwen2.5:7b` if the model is missing.
+It bundles the Ollama runtime, but not the model. On first run, the app will
+start bundled Ollama and download `qwen2.5:7b` if the model is missing.
 
 The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.
