@@ -32,7 +32,6 @@ CONFIG_PATH = PROJECT_DIR / "config.toml"
 VISION_OCR_EXECUTABLE = PROJECT_DIR / "vision_ocr"
 VISION_OCR_SOURCE = PROJECT_DIR / "helpers" / "vision_ocr.swift"
 PROGRESS_RUNNER_EXECUTABLE = PROJECT_DIR / "progress_runner"
-NOTIFICATION_RUNNER_EXECUTABLE = PROJECT_DIR / "notification_runner"
 PDFTOTEXT_EXECUTABLE = first_available_executable(
     PROJECT_DIR / "bin" / "pdftotext",
     "pdftotext",

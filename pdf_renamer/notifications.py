@@ -1,37 +1,20 @@
 import subprocess
 import sys
 
-from .config import NOTIFICATION_RUNNER_EXECUTABLE
 from .models import BatchSummary
 
 
-def send_text_notification(title: str, message: str):
+def show_text_message(title: str, message: str):
     if sys.platform != "darwin":
         return
-
-    if NOTIFICATION_RUNNER_EXECUTABLE.is_file():
-        try:
-            subprocess.run(
-                [
-                    str(NOTIFICATION_RUNNER_EXECUTABLE),
-                    title,
-                    message,
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            return
-        except Exception as error:
-            print(f"native macOS notification failed: {error}")
 
     def escape(value: str) -> str:
         return value.replace("\\", "\\\\").replace('"', '\\"')
 
     script = (
-        f'display notification "{escape(message)}" '
-        f'with title "{escape(title)}"'
+        f'display dialog "{escape(message)}" '
+        f'with title "{escape(title)}" '
+        'buttons {"OK"} default button "OK"'
     )
 
     try:
@@ -40,10 +23,14 @@ def send_text_notification(title: str, message: str):
             check=False,
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=300,
         )
     except Exception as error:
-        print(f"macOS notification failed: {error}")
+        print(f"macOS message failed: {error}")
+
+
+def send_text_notification(title: str, message: str):
+    show_text_message(title, message)
 
 
 def send_macos_notification(
@@ -71,4 +58,4 @@ def send_macos_notification(
     if summary.errors:
         parts.append(f"{summary.errors} errors")
 
-    send_text_notification(title, " • ".join(parts))
+    show_text_message(title, " • ".join(parts))
