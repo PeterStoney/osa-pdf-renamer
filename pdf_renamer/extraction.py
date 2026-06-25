@@ -102,6 +102,13 @@ def clean_document_type(document_type: str) -> str:
     return document_type[:120].strip()
 
 
+def strip_unknown_alternative(value: str) -> str:
+    if not isinstance(value, str):
+        return value
+    value = re.sub(r"\s+or\s+unknown\b", "", value, flags=re.IGNORECASE)
+    return value.strip()
+
+
 MONTHS = {
     "jan": 1,
     "january": 1,
@@ -212,6 +219,7 @@ def extract_document_date(text: str) -> tuple[str, str]:
         "operation date",
         "surgery date",
         "consultation date",
+        "referral date",
         "requested date",
         "request date",
         "collection date",
@@ -769,9 +777,13 @@ def deterministic_document_details(text: str) -> DocumentDetails:
 def parse_model_response(raw: str) -> DocumentDetails:
     try:
         data = json.loads(raw)
-        name = data.get("patient_name", UNKNOWN)
-        document_type = data.get("document_type", UNKNOWN)
-        document_date = data.get("document_date", UNKNOWN)
+        name = strip_unknown_alternative(data.get("patient_name", UNKNOWN))
+        document_type = strip_unknown_alternative(
+            data.get("document_type", UNKNOWN)
+        )
+        document_date = strip_unknown_alternative(
+            data.get("document_date", UNKNOWN)
+        )
         name_evidence = data.get("name_evidence", "")
         type_evidence = data.get("type_evidence", "")
         date_evidence = data.get("date_evidence", "")
@@ -790,10 +802,22 @@ def parse_model_response(raw: str) -> DocumentDetails:
             r'"type_evidence"\s*:\s*"([^"]*)"',
             raw,
         )
-        name = name_match.group(1) if name_match else UNKNOWN
-        document_type = type_match.group(1) if type_match else UNKNOWN
+        name = (
+            strip_unknown_alternative(name_match.group(1))
+            if name_match
+            else UNKNOWN
+        )
+        document_type = (
+            strip_unknown_alternative(type_match.group(1))
+            if type_match
+            else UNKNOWN
+        )
         date_match = re.search(r'"document_date"\s*:\s*"([^"]+)"', raw)
-        document_date = date_match.group(1) if date_match else UNKNOWN
+        document_date = (
+            strip_unknown_alternative(date_match.group(1))
+            if date_match
+            else UNKNOWN
+        )
         name_evidence = (
             name_evidence_match.group(1)
             if name_evidence_match
@@ -880,9 +904,9 @@ Select the patient name and document type from the OCR below.
 
 Return one JSON object with exactly these seven keys and no others:
 {{
-  "patient_name": "First Last or unknown",
-  "document_type": "specific concise type or unknown",
-  "document_date": "DD-MM-YY or unknown",
+  "patient_name": "unknown",
+  "document_type": "unknown",
+  "document_date": "unknown",
   "name_evidence": "short exact OCR excerpt",
   "type_evidence": "short exact OCR excerpt",
   "date_evidence": "short exact OCR excerpt",
@@ -891,6 +915,8 @@ Return one JSON object with exactly these seven keys and no others:
 
 Rules:
 - Evidence must be copied from OCR, not invented.
+- Each field must contain one final answer only. Never include alternatives
+  such as "or unknown".
 - Use structured line position, size, and confidence to understand layout.
 - Prefer names labelled Patient/Name/Re or positioned beside DOB/patient ID.
 - Ignore doctors, referrers, radiologists, surgeons, carers, and contacts.

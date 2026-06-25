@@ -132,7 +132,7 @@ NOTIFICATIONS = bool(_RENAMER.get("notifications", True))
 HEALTH_CHECK = bool(_RENAMER.get("health_check", True))
 UPDATE_CHECK = bool(_RENAMER.get("update_check", True))
 
-OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:3b"))
+OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:7b"))
 OLLAMA_URL = str(
     _OLLAMA.get(
         "url",
@@ -141,7 +141,7 @@ OLLAMA_URL = str(
 )
 OLLAMA_OBSOLETE_MODELS = tuple(
     str(model)
-    for model in _OLLAMA.get("obsolete_models", ["qwen2.5:7b"])
+    for model in _OLLAMA.get("obsolete_models", ["qwen2.5:3b"])
     if str(model) != OLLAMA_MODEL
 )
 
