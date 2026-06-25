@@ -123,8 +123,8 @@ dist/OSA PDF Renamer.app
 ```
 
 The packaged app is intended for coworkers who do not have Python installed.
-It bundles the Python runtime and this project code, but still expects Ollama
-and the configured local model to be installed on the Mac.
+It bundles the Python runtime, this project code, Poppler, Ollama, and helper
+tools. The configured local model is downloaded on first use if missing.
 
 Build notes are in `packaging/README.md`.
 
@@ -153,9 +153,9 @@ Release process:
 5. Attach `dist/OSA PDF Renamer Installer.pkg` to the release.
 
 Coworker installs compare their bundled `VERSION` against the latest GitHub
-Release tag and offer to open the release page when a newer version exists.
-
-Current test release: `0.2.3`.
+Release tag. When a newer version exists, the app can download the attached
+`.pkg` installer to `~/Downloads` and open it. If automatic download fails, it
+offers to open the GitHub release page instead.
 
 ## Tests
 
