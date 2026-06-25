@@ -9,14 +9,21 @@ def build_filename(
     patient_name: str,
     document_type: str,
     document_date: str = UNKNOWN,
+    *,
+    include_date: bool = True,
+    include_name: bool = True,
+    include_type: bool = True,
 ) -> str:
     if document_type == UNKNOWN:
         document_type = "Unknown"
     parts = []
-    if document_date != UNKNOWN:
+    if include_date and document_date != UNKNOWN:
         parts.append(document_date)
-    parts.extend([patient_name, document_type])
-    return " - ".join(parts)
+    if include_name:
+        parts.append(patient_name)
+    if include_type:
+        parts.append(document_type)
+    return " - ".join(parts) if parts else "Unknown"
 
 
 def unique_path(

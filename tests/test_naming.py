@@ -27,7 +27,56 @@ def main() -> int:
         build_filename("unknown", "Reg form", "01-06-26"),
         "01-06-26 - unknown - Reg form",
     )
-    print("PASS: filename date formatting")
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_date=False,
+        ),
+        "John Smith - MRI right knee",
+    )
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_name=False,
+        ),
+        "16-05-26 - MRI right knee",
+    )
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_type=False,
+        ),
+        "16-05-26 - John Smith",
+    )
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_date=False,
+            include_name=False,
+            include_type=True,
+        ),
+        "MRI right knee",
+    )
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_date=False,
+            include_name=False,
+            include_type=False,
+        ),
+        "Unknown",
+    )
+    print("PASS: filename formatting")
     return 0
 
 

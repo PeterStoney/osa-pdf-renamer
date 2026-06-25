@@ -6,6 +6,11 @@ notifications = true
 health_check = true
 update_check = true
 
+[output]
+include_date = true
+include_name = true
+include_type = true
+
 [updates]
 github_repo = "PeterStoney/osa-pdf-renamer"
 

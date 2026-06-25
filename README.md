@@ -49,6 +49,19 @@ The normal workflow is through a Finder Automator Quick Action:
 macOS commonly requires the one-time `Customize…` step for Automator Quick
 Actions installed by a package rather than created manually in Automator.
 
+Opening `OSA PDF Renamer.app` directly from `/Applications` shows a small
+settings interface. The current UI can change which filename fields are used:
+
+- date
+- patient/name
+- document type
+
+The settings are saved per user in:
+
+```text
+~/Library/Application Support/OSA PDF Renamer/config.toml
+```
+
 The Automator entry point is:
 
 ```text
@@ -83,6 +96,11 @@ vision_dpi = 225
 notifications = true
 health_check = true
 
+[output]
+include_date = true
+include_name = true
+include_type = true
+
 [ollama]
 model = "qwen2.5:3b"
 url = "http://localhost:11434/api/generate"
@@ -96,6 +114,8 @@ Useful options:
 - `vision_dpi`: scan rendering resolution, clamped to 150–300.
 - `notifications`: show macOS batch completion notifications.
 - `health_check`: verify dependencies before processing.
+- `include_date`, `include_name`, `include_type`: choose which extracted
+  fields appear in output filenames.
 - `obsolete_models`: specific old Ollama models the app may remove after the
   current model is installed.
 

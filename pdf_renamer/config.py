@@ -40,6 +40,26 @@ def resource_dir() -> Path:
     return bundle_search_dirs()[0]
 
 
+def user_config_path() -> Path:
+    if sys.platform == "darwin":
+        return (
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "OSA PDF Renamer"
+            / "config.toml"
+        )
+    if sys.platform == "win32":
+        return (
+            Path.home()
+            / "AppData"
+            / "Roaming"
+            / "OSA PDF Renamer"
+            / "config.toml"
+        )
+    return Path.home() / ".config" / "osa-pdf-renamer" / "config.toml"
+
+
 def bundled_executable_candidates(name: str) -> tuple[Path, ...]:
     candidates = []
     for directory in bundle_search_dirs():
@@ -63,6 +83,7 @@ def first_available_executable(*candidates: str | Path) -> str:
 
 PROJECT_DIR = resource_dir()
 CONFIG_PATH = PROJECT_DIR / "config.toml"
+USER_CONFIG_PATH = user_config_path()
 VERSION_PATH = PROJECT_DIR / "VERSION"
 VISION_OCR_EXECUTABLE = Path(
     first_available_executable(
@@ -101,6 +122,8 @@ OLLAMA_EXECUTABLE = first_available_executable(
 
 
 def load_config(config_path: Path = CONFIG_PATH):
+    if not config_path.is_file():
+        return {}
     try:
         with config_path.open("rb") as source:
             return tomllib.load(source)
@@ -109,8 +132,53 @@ def load_config(config_path: Path = CONFIG_PATH):
         return {}
 
 
-_CONFIG = load_config()
+def deep_merge(base: dict, override: dict) -> dict:
+    merged = dict(base)
+    for key, value in override.items():
+        if (
+            isinstance(value, dict)
+            and isinstance(merged.get(key), dict)
+        ):
+            merged[key] = deep_merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def effective_config() -> dict:
+    return deep_merge(load_config(CONFIG_PATH), load_config(USER_CONFIG_PATH))
+
+
+def format_toml_value(value) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(format_toml_value(item) for item in value) + "]"
+    return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def write_user_config(config: dict) -> None:
+    USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# User settings for OSA PDF Renamer.",
+        "# This file overrides the bundled app defaults.",
+        "",
+    ]
+    for section, values in config.items():
+        if not isinstance(values, dict):
+            continue
+        lines.append(f"[{section}]")
+        for key, value in values.items():
+            lines.append(f"{key} = {format_toml_value(value)}")
+        lines.append("")
+    USER_CONFIG_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+
+_CONFIG = effective_config()
 _RENAMER = _CONFIG.get("renamer", {})
+_OUTPUT = _CONFIG.get("output", {})
 _OLLAMA = _CONFIG.get("ollama", {})
 _UPDATES = _CONFIG.get("updates", {})
 
@@ -131,6 +199,10 @@ VISION_DPI = max(150, min(int(_RENAMER.get("vision_dpi", 225)), 300))
 NOTIFICATIONS = bool(_RENAMER.get("notifications", True))
 HEALTH_CHECK = bool(_RENAMER.get("health_check", True))
 UPDATE_CHECK = bool(_RENAMER.get("update_check", True))
+
+INCLUDE_DATE = bool(_OUTPUT.get("include_date", True))
+INCLUDE_NAME = bool(_OUTPUT.get("include_name", True))
+INCLUDE_TYPE = bool(_OUTPUT.get("include_type", True))
 
 OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:3b"))
 OLLAMA_URL = str(

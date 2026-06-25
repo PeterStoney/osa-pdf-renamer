@@ -6,6 +6,9 @@ from .config import (
     DEBUG_MODE,
     DRY_RUN,
     HEALTH_CHECK,
+    INCLUDE_DATE,
+    INCLUDE_NAME,
+    INCLUDE_TYPE,
     NOTIFICATIONS,
     OLLAMA_EXECUTABLE,
     OLLAMA_MODEL,
@@ -30,6 +33,9 @@ def main(
     health_check: bool = HEALTH_CHECK,
     notifications: bool = NOTIFICATIONS,
     update_check: bool = UPDATE_CHECK,
+    include_date: bool = INCLUDE_DATE,
+    include_name: bool = INCLUDE_NAME,
+    include_type: bool = INCLUDE_TYPE,
 ):
     arguments = list(sys.argv[1:] if args is None else args)
     summary = BatchSummary()
@@ -66,6 +72,9 @@ def main(
                     pdf_path,
                     dry_run=dry_run,
                     debug_mode=debug_mode,
+                    include_date=include_date,
+                    include_name=include_name,
+                    include_type=include_type,
                 )
                 if result.renamed:
                     summary.renamed += 1

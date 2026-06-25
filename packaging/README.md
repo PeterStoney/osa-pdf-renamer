@@ -27,6 +27,11 @@ start bundled Ollama and download `qwen2.5:3b` if the model is missing.
 The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.
 
+When opened directly from `/Applications`, the app shows a minimal settings UI
+for filename output fields and version/status information. When launched with
+PDF paths from the Finder Quick Action, it processes those PDFs without showing
+the settings UI.
+
 Poppler is bundled by `build_app.command` from the build machine's installed
 `pdftotext`, `pdftoppm`, and `pdfinfo`. The app first looks for bundled Poppler tools in
 `bin/`, then falls back to `PATH` and `/opt/homebrew/bin`.

@@ -12,6 +12,9 @@ def rename_pdf(
     *,
     dry_run: bool = False,
     debug_mode: str = "failures",
+    include_date: bool = True,
+    include_name: bool = True,
+    include_type: bool = True,
 ) -> RenameResult:
     text = extract_document_text(pdf_path)
     if not text.strip():
@@ -26,6 +29,9 @@ def rename_pdf(
         details.patient_name,
         details.document_type,
         details.document_date,
+        include_date=include_date,
+        include_name=include_name,
+        include_type=include_type,
     )
     new_path = unique_path(
         pdf_path.parent,
@@ -34,9 +40,9 @@ def rename_pdf(
     )
 
     needs_review = (
-        details.patient_name == UNKNOWN
-        or details.document_type == UNKNOWN
-        or details.document_date == UNKNOWN
+        (include_name and details.patient_name == UNKNOWN)
+        or (include_type and details.document_type == UNKNOWN)
+        or (include_date and details.document_date == UNKNOWN)
     )
     write_debug = (
         debug_mode == "all"
