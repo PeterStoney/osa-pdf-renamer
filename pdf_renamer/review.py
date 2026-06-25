@@ -9,6 +9,9 @@ from .models import BatchSummary, DocumentDetails, RenameResult
 from .naming import build_filename, unique_path
 
 
+EXIT_REVIEW = "__EXIT_REVIEW__"
+
+
 def run_osascript(script: str) -> str:
     result = subprocess.run(
         ["/usr/bin/osascript", "-e", script],
@@ -116,6 +119,10 @@ def correction_from_values(
     return corrected
 
 
+def contains_unknown_value(values: list[str]) -> bool:
+    return any(value.strip().lower() == UNKNOWN for value in values)
+
+
 def prompt_for_correction(
     item: RenameResult,
     *,
@@ -123,7 +130,7 @@ def prompt_for_correction(
     include_sender: bool,
     include_name: bool,
     include_type: bool,
-) -> DocumentDetails | None:
+) -> DocumentDetails | None | str:
     labels = enabled_field_labels(
         include_date=include_date,
         include_sender=include_sender,
@@ -142,8 +149,16 @@ def prompt_for_correction(
     )
     default_answer = " | ".join(default_values)
     filename = item.final_path.name if item.final_path else "Unknown.pdf"
+    detected = (
+        "Detected fields:\n"
+        f"Date: {item.details.document_date}\n"
+        f"Sender: {item.details.sender}\n"
+        f"Person / subject: {item.details.patient_name}\n"
+        f"Document type: {item.details.document_type}"
+    )
     prompt = (
         f"{filename} needs review.\n\n"
+        f"{detected}\n\n"
         "Edit the fields below, separated by pipes:\n"
         f"{' | '.join(labels)}"
     )
@@ -154,7 +169,7 @@ def prompt_for_correction(
             f"{json.dumps(prompt)} "
             'with title "Review PDF filename" '
             f"default answer {json.dumps(default_answer)} "
-            'buttons {"Skip", "Save"} '
+            'buttons {"Exit review", "Skip", "Save"} '
             'default button "Save"\n'
             "return button returned of dialogResult & linefeed & "
             "text returned of dialogResult"
@@ -164,11 +179,15 @@ def prompt_for_correction(
             return None
 
         button, _, answer = output.partition("\n")
+        if button == "Exit review":
+            return EXIT_REVIEW
         if button != "Save":
             return None
 
         values = [part.strip() for part in answer.split("|")]
         if len(values) == len(labels):
+            if contains_unknown_value(values):
+                return None
             return correction_from_values(
                 item.details,
                 values,
@@ -181,6 +200,7 @@ def prompt_for_correction(
         default_answer = answer
         prompt = (
             f"Please provide exactly {len(labels)} fields separated by pipes.\n\n"
+            f"{detected}\n\n"
             f"{' | '.join(labels)}"
         )
 
@@ -238,6 +258,8 @@ def review_unknowns(
             include_name=include_name,
             include_type=include_type,
         )
+        if corrected == EXIT_REVIEW:
+            break
         if corrected is None:
             continue
 

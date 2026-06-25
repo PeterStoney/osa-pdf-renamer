@@ -43,7 +43,7 @@ The normal workflow is through a Finder Automator Quick Action:
    - Tick `Rename OSA PDFs`.
 3. Select one or more PDFs in Finder.
 4. Run `Quick Actions > Rename OSA PDFs`.
-5. Wait for the completion popup.
+5. Wait for the progress indicator and completion popup.
 6. If files need review, choose `Review unknowns` to correct them immediately.
 
 macOS commonly requires the one-time `Customize…` step for Automator Quick
@@ -79,8 +79,17 @@ Needs review: 2
 Errors: 0
 ```
 
-Choose `Review unknowns` to correct each file. Corrections are used to rename
-the reviewed files and are saved locally in:
+Choose `Review unknowns` to correct each file. The correction prompt shows the
+fields detected from OCR/model extraction before asking for edits. You can:
+
+- choose `Save` to rename and save a correction;
+- choose `Skip` to leave that file as-is;
+- choose `Exit review` to stop reviewing the remaining files.
+
+If `Save` is clicked while any enabled field still says `unknown`, the app
+treats that as a skip and does not save a correction record.
+
+Corrections are used to rename the reviewed files and are saved locally in:
 
 ```text
 ~/Library/Application Support/OSA PDF Renamer/corrections.jsonl

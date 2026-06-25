@@ -23,6 +23,7 @@ from .notifications import (
     send_text_notification,
 )
 from .review import review_unknowns
+from .progress import write_progress
 from .update_check import check_for_updates
 from .workflow import rename_pdf
 
@@ -68,7 +69,14 @@ def main(
             return summary
 
     try:
-        for pdf_path in pdf_paths:
+        total = len(pdf_paths)
+        write_progress(0, total, message="Starting")
+        for index, pdf_path in enumerate(pdf_paths, start=1):
+            write_progress(
+                index - 1,
+                total,
+                message=f"Processing {pdf_path.name}",
+            )
             summary.processed += 1
             try:
                 result = rename_pdf(
@@ -90,6 +98,12 @@ def main(
             except Exception as error:
                 summary.errors += 1
                 print(f"Failed to process {pdf_path.name}: {error}")
+            finally:
+                write_progress(
+                    index,
+                    total,
+                    message=f"Finished {pdf_path.name}",
+                )
     finally:
         try:
             subprocess.run(
