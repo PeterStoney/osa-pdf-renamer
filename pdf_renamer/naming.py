@@ -5,10 +5,18 @@ from typing import Optional
 from .config import UNKNOWN
 
 
-def build_filename(patient_name: str, document_type: str) -> str:
+def build_filename(
+    patient_name: str,
+    document_type: str,
+    document_date: str = UNKNOWN,
+) -> str:
     if document_type == UNKNOWN:
         document_type = "Unknown"
-    return f"{patient_name} - {document_type}"
+    parts = []
+    if document_date != UNKNOWN:
+        parts.append(document_date)
+    parts.extend([patient_name, document_type])
+    return " - ".join(parts)
 
 
 def unique_path(

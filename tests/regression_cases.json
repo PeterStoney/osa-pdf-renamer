@@ -57,7 +57,8 @@
     "name": "Radiology name and DOB followed by Patient ID on same line",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nRADIOLOGY EXAMPLE\nALEX SAMPLE ( 1/1/1970 )                                     Patient ID : ABC123\nService Date: 01/06/2026\nUS LEFT KNEE\nFindings:",
     "patient_name": "Alex Sample",
-    "document_type": "Ultrasound left knee"
+    "document_type": "Ultrasound left knee",
+    "document_date": "01-06-26"
   },
   {
     "name": "OSA registration recovers missing surname from matching email",
@@ -88,5 +89,25 @@
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: EXAMPLE, MORGAN                        Accession Number: 2026ABC456\nDate of Birth: February 2, 1972                      Procedure Description: MRI LT HIP\nModality: MR\nFindings\nEXAMINATION:\n\nMRI left hip.\nCLINICAL:\nHip pain.",
     "patient_name": "Morgan Example",
     "document_type": "MRI left hip"
+  },
+  {
+    "name": "Radiology requested date prefixes MRI filename",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX                           Accession Number: 2026ABC123\nDate of Birth: January 1, 1970                       Requested Date: June 16, 2026 14:02\nProcedure Description: MRI RT KNEE\nModality: MR\nFindings\nEXAMINATION:\n\nMRI right knee.\nCLINICAL:\nAcute sporting injury.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee",
+    "document_date": "16-06-26"
+  },
+  {
+    "name": "DOB alone is not used as document date",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDate of Birth: January 1, 1970\nProcedure Description: MRI RT KNEE\nEXAMINATION:\nMRI right knee.\nCLINICAL:\nAcute sporting injury.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
+  },
+  {
+    "name": "Numeric service date is normalised for filename",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: EXAMPLE, MORGAN\nDate of Birth: 02/02/1972\nService Date: 16/05/2026\nUS LEFT KNEE\nFindings:",
+    "patient_name": "Morgan Example",
+    "document_type": "Ultrasound left knee",
+    "document_date": "16-05-26"
   }
 ]

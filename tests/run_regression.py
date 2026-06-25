@@ -30,20 +30,22 @@ def run_case(case):
     expected = (
         case["patient_name"],
         case["document_type"],
+        case.get("document_date", renamer.UNKNOWN),
     )
     actual = (
         details.patient_name,
         details.document_type,
+        details.document_date,
     )
 
     if actual == expected:
-        return "PASS", f"{actual[0]} - {actual[1]}"
+        return "PASS", " - ".join(actual)
 
     return (
         "FAIL",
         (
-            f"expected {expected[0]} - {expected[1]}; "
-            f"got {actual[0]} - {actual[1]}"
+            f"expected {' - '.join(expected)}; "
+            f"got {' - '.join(actual)}"
         ),
     )
 

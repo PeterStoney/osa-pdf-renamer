@@ -25,6 +25,7 @@ def rename_pdf(
     base_name = build_filename(
         details.patient_name,
         details.document_type,
+        details.document_date,
     )
     new_path = unique_path(
         pdf_path.parent,
@@ -35,6 +36,7 @@ def rename_pdf(
     needs_review = (
         details.patient_name == UNKNOWN
         or details.document_type == UNKNOWN
+        or details.document_date == UNKNOWN
     )
     write_debug = (
         debug_mode == "all"
@@ -56,10 +58,14 @@ def rename_pdf(
             + details.patient_name
             + "\n\n===== DOCUMENT TYPE =====\n\n"
             + details.document_type
+            + "\n\n===== DOCUMENT DATE =====\n\n"
+            + details.document_date
             + "\n\n===== NAME EVIDENCE =====\n\n"
             + details.name_evidence
             + "\n\n===== TYPE EVIDENCE =====\n\n"
             + details.type_evidence
+            + "\n\n===== DATE EVIDENCE =====\n\n"
+            + details.date_evidence
             + "\n\n===== MODEL CONFIDENCE =====\n\n"
             + f"{details.confidence:.3f}\n",
             encoding="utf-8",

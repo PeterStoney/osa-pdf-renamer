@@ -7,9 +7,11 @@ from .config import UNKNOWN
 class DocumentDetails:
     patient_name: str = UNKNOWN
     document_type: str = UNKNOWN
+    document_date: str = UNKNOWN
     raw_model_response: str = ""
     name_evidence: str = ""
     type_evidence: str = ""
+    date_evidence: str = ""
     confidence: float = 0.0
 
 

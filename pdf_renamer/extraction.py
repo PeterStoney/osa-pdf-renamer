@@ -102,6 +102,150 @@ def clean_document_type(document_type: str) -> str:
     return document_type[:120].strip()
 
 
+MONTHS = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
+}
+
+
+def normalize_year(year: str) -> int:
+    value = int(year)
+    if value < 100:
+        return 2000 + value if value < 50 else 1900 + value
+    return value
+
+
+def format_document_date(day: int, month: int, year: int) -> str:
+    return f"{day:02d}-{month:02d}-{year % 100:02d}"
+
+
+def parse_date_value(value: str) -> str:
+    value = re.sub(r"\s+", " ", value).strip()
+
+    numeric = re.search(
+        r"\b([0-3]?\d)[/.-]([01]?\d)[/.-](\d{2,4})\b",
+        value,
+    )
+    if numeric:
+        day = int(numeric.group(1))
+        month = int(numeric.group(2))
+        year = normalize_year(numeric.group(3))
+        if 1 <= day <= 31 and 1 <= month <= 12:
+            return format_document_date(day, month, year)
+
+    iso = re.search(r"\b(\d{4})-([01]?\d)-([0-3]?\d)\b", value)
+    if iso:
+        year = int(iso.group(1))
+        month = int(iso.group(2))
+        day = int(iso.group(3))
+        if 1 <= day <= 31 and 1 <= month <= 12:
+            return format_document_date(day, month, year)
+
+    month_first = re.search(
+        r"\b("
+        + "|".join(MONTHS)
+        + r")\.?\s+([0-3]?\d)(?:st|nd|rd|th)?[,]?\s+(\d{2,4})\b",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if month_first:
+        month = MONTHS[month_first.group(1).lower()]
+        day = int(month_first.group(2))
+        year = normalize_year(month_first.group(3))
+        if 1 <= day <= 31:
+            return format_document_date(day, month, year)
+
+    day_first = re.search(
+        r"\b([0-3]?\d)(?:st|nd|rd|th)?\s+("
+        + "|".join(MONTHS)
+        + r")\.?[,]?\s+(\d{2,4})\b",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if day_first:
+        day = int(day_first.group(1))
+        month = MONTHS[day_first.group(2).lower()]
+        year = normalize_year(day_first.group(3))
+        if 1 <= day <= 31:
+            return format_document_date(day, month, year)
+
+    return UNKNOWN
+
+
+def extract_document_date(text: str) -> tuple[str, str]:
+    """Extract the document/event date, avoiding DOB and export dates."""
+    readable_text = text.split(
+        "===== STRUCTURED VISION OCR LINES =====",
+        1,
+    )[0]
+
+    labels = (
+        "service date",
+        "study date",
+        "exam date",
+        "examination date",
+        "procedure date",
+        "performed date",
+        "appointment date",
+        "operation date",
+        "surgery date",
+        "consultation date",
+        "requested date",
+        "request date",
+        "collection date",
+        "visit date",
+        "date of service",
+    )
+
+    for label in labels:
+        pattern = (
+            rf"(?im)\b{re.escape(label)}\s*:\s*"
+            r"([^\n]{4,100})"
+        )
+        match = re.search(pattern, readable_text)
+        if not match:
+            continue
+        evidence = f"{label}: {match.group(1).strip()}"
+        document_date = parse_date_value(match.group(1))
+        if document_date != UNKNOWN:
+            return document_date, evidence
+
+    # Fallback for a generic letter/form date near the top of a document.
+    top_lines = "\n".join(readable_text.splitlines()[:12])
+    generic = re.search(
+        r"(?im)^\s*(?:date)\s*:\s*([^\n]{4,80})$",
+        top_lines,
+    )
+    if generic:
+        document_date = parse_date_value(generic.group(1))
+        if document_date != UNKNOWN:
+            return document_date, f"Date: {generic.group(1).strip()}"
+
+    return UNKNOWN, ""
+
+
 def primary_vision_text(text: str) -> str:
     marker = "===== MACOS VISION OCR (PRIMARY) ====="
     if marker not in text:
@@ -592,6 +736,7 @@ def extract_structured_re_name(text: str) -> str:
 
 def deterministic_document_details(text: str) -> DocumentDetails:
     document_type = detect_common_document_type(text)
+    document_date, date_evidence = extract_document_date(text)
     patient_name = UNKNOWN
 
     if document_type == "Reg form":
@@ -609,10 +754,14 @@ def deterministic_document_details(text: str) -> DocumentDetails:
     return DocumentDetails(
         patient_name=patient_name,
         document_type=document_type,
+        document_date=document_date,
         name_evidence=patient_name if patient_name != UNKNOWN else "",
         type_evidence=document_type if document_type != UNKNOWN else "",
+        date_evidence=date_evidence,
         confidence=1.0 if (
-            patient_name != UNKNOWN and document_type != UNKNOWN
+            patient_name != UNKNOWN
+            and document_type != UNKNOWN
+            and document_date != UNKNOWN
         ) else 0.0,
     )
 
@@ -622,8 +771,10 @@ def parse_model_response(raw: str) -> DocumentDetails:
         data = json.loads(raw)
         name = data.get("patient_name", UNKNOWN)
         document_type = data.get("document_type", UNKNOWN)
+        document_date = data.get("document_date", UNKNOWN)
         name_evidence = data.get("name_evidence", "")
         type_evidence = data.get("type_evidence", "")
+        date_evidence = data.get("date_evidence", "")
         try:
             confidence = float(data.get("confidence", 0.0))
         except (TypeError, ValueError):
@@ -641,6 +792,8 @@ def parse_model_response(raw: str) -> DocumentDetails:
         )
         name = name_match.group(1) if name_match else UNKNOWN
         document_type = type_match.group(1) if type_match else UNKNOWN
+        date_match = re.search(r'"document_date"\s*:\s*"([^"]+)"', raw)
+        document_date = date_match.group(1) if date_match else UNKNOWN
         name_evidence = (
             name_evidence_match.group(1)
             if name_evidence_match
@@ -651,14 +804,29 @@ def parse_model_response(raw: str) -> DocumentDetails:
             if type_evidence_match
             else ""
         )
+        date_evidence_match = re.search(
+            r'"date_evidence"\s*:\s*"([^"]*)"',
+            raw,
+        )
+        date_evidence = (
+            date_evidence_match.group(1)
+            if date_evidence_match
+            else ""
+        )
         confidence = 0.0
+
+    parsed_document_date = parse_date_value(str(document_date))
+    if parsed_document_date == UNKNOWN and str(document_date).lower() == UNKNOWN:
+        parsed_document_date = UNKNOWN
 
     return DocumentDetails(
         patient_name=clean_name(name),
         document_type=clean_document_type(document_type),
+        document_date=parsed_document_date,
         raw_model_response=raw,
         name_evidence=str(name_evidence).strip(),
         type_evidence=str(type_evidence).strip(),
+        date_evidence=str(date_evidence).strip(),
         confidence=max(0.0, min(confidence, 1.0)),
     )
 
@@ -710,12 +878,14 @@ def build_evidence_extraction_prompt(text: str) -> str:
     return f"""
 Select the patient name and document type from the OCR below.
 
-Return one JSON object with exactly these five keys and no others:
+Return one JSON object with exactly these seven keys and no others:
 {{
   "patient_name": "First Last or unknown",
   "document_type": "specific concise type or unknown",
+  "document_date": "DD-MM-YY or unknown",
   "name_evidence": "short exact OCR excerpt",
   "type_evidence": "short exact OCR excerpt",
+  "date_evidence": "short exact OCR excerpt",
   "confidence": 0.0
 }}
 
@@ -726,6 +896,10 @@ Rules:
 - Ignore doctors, referrers, radiologists, surgeons, carers, and contacts.
 - Convert surname-first names to normal order and remove titles.
 - Prefer an explicit document title, Examination, Study, or procedure heading.
+- For document_date, prefer service/study/examination/procedure/requested/
+  appointment/operation dates. Never use Date of Birth/DOB or report export
+  dates as document_date.
+- document_date must use DD-MM-YY format.
 - For a compound imaging heading, preserve every visible modality/body part.
 - Never replace a specific visible study with a generic label such as
   "Exam report", "Imaging report", "Medical report", or "Clinical document".
@@ -816,9 +990,13 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
 
     if common_document_type != UNKNOWN:
         details.document_type = common_document_type
+        details.type_evidence = deterministic.type_evidence
     if deterministic.patient_name != UNKNOWN:
         details.patient_name = deterministic.patient_name
         details.name_evidence = deterministic.name_evidence
+    if deterministic.document_date != UNKNOWN:
+        details.document_date = deterministic.document_date
+        details.date_evidence = deterministic.date_evidence
     if common_document_type == "Reg form":
         labeled_name = extract_primary_labeled_name(text)
         if labeled_name != UNKNOWN:
@@ -855,14 +1033,25 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
     if valid_name(fallback_details.patient_name):
         if common_document_type != UNKNOWN:
             fallback_details.document_type = common_document_type
+            fallback_details.type_evidence = deterministic.type_evidence
         elif fallback_details.document_type == UNKNOWN:
             fallback_details.document_type = details.document_type
+
+        if deterministic.document_date != UNKNOWN:
+            fallback_details.document_date = deterministic.document_date
+            fallback_details.date_evidence = deterministic.date_evidence
+        elif fallback_details.document_date == UNKNOWN:
+            fallback_details.document_date = details.document_date
 
         return fallback_details
 
     fallback_details.patient_name = UNKNOWN
     if common_document_type != UNKNOWN:
         fallback_details.document_type = common_document_type
+        fallback_details.type_evidence = deterministic.type_evidence
+    if deterministic.document_date != UNKNOWN:
+        fallback_details.document_date = deterministic.document_date
+        fallback_details.date_evidence = deterministic.date_evidence
 
     return fallback_details
 
