@@ -109,5 +109,51 @@
     "patient_name": "Morgan Example",
     "document_type": "Ultrasound left knee",
     "document_date": "16-05-26"
+  },
+  {
+    "name": "Study performed without colon is used as document date",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDOB: 01/01/1970\nStudy performed on 16/05/2026\nMRI RIGHT KNEE\nFindings: Meniscal tear.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee",
+    "document_date": "16-05-26"
+  },
+  {
+    "name": "Date of examination with date on next line is used",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: EXAMPLE, MORGAN\nDOB: 02/02/1972\nDate of examination:\n17 May 2026\nUS LEFT KNEE\nFindings: Effusion.",
+    "patient_name": "Morgan Example",
+    "document_type": "Ultrasound left knee",
+    "document_date": "17-05-26"
+  },
+  {
+    "name": "Report date is ignored when study date is present",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDOB: 01/01/1970\nReport Date: 20/05/2026\nStudy Date: 16/05/2026\nMRI RIGHT KNEE\nFindings: ACL tear.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee",
+    "document_date": "16-05-26"
+  },
+  {
+    "name": "Report date alone is not used as document date",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDOB: 01/01/1970\nReport Date: 20/05/2026\nMRI RIGHT KNEE\nFindings: ACL tear.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
+  },
+  {
+    "name": "Invalid calendar date is not used",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDOB: 01/01/1970\nService Date: 31/02/2026\nMRI RIGHT KNEE\nFindings: Pain.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
+  },
+  {
+    "name": "Standalone letter date near top is used",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Family Clinic\n18 June 2026\n\nDear Surgeon,\nRE: Mr ALEX SAMPLE\nDOB: 01/01/1970\nPlease review Alex for right knee pain.",
+    "patient_name": "Alex Sample",
+    "document_type": "Referral",
+    "document_date": "18-06-26"
+  },
+  {
+    "name": "Recent child DOB is still ignored as document date",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDate of Birth: 01/01/2020\nProcedure Description: MRI RT KNEE\nEXAMINATION:\nMRI right knee.",
+    "patient_name": "Alex Sample",
+    "document_type": "MRI right knee"
   }
 ]

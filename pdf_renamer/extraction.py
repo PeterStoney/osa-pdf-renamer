@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import date
 
 import requests
 from .config import OLLAMA_MODEL, OLLAMA_URL, UNKNOWN
@@ -253,6 +254,21 @@ def normalize_year(year: str) -> int:
     return value
 
 
+def valid_document_year(year: int) -> bool:
+    """Allow recent/historical document dates without accepting ancient DOBs."""
+    return 1990 <= year <= date.today().year + 5
+
+
+def valid_calendar_date(day: int, month: int, year: int) -> bool:
+    if not valid_document_year(year):
+        return False
+    try:
+        date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
 def format_document_date(day: int, month: int, year: int) -> str:
     return f"{day:02d}-{month:02d}-{year % 100:02d}"
 
@@ -268,7 +284,7 @@ def parse_date_value(value: str) -> str:
         day = int(numeric.group(1))
         month = int(numeric.group(2))
         year = normalize_year(numeric.group(3))
-        if 1 <= day <= 31 and 1 <= month <= 12:
+        if valid_calendar_date(day, month, year):
             return format_document_date(day, month, year)
 
     iso = re.search(r"\b(\d{4})-([01]?\d)-([0-3]?\d)\b", value)
@@ -276,7 +292,7 @@ def parse_date_value(value: str) -> str:
         year = int(iso.group(1))
         month = int(iso.group(2))
         day = int(iso.group(3))
-        if 1 <= day <= 31 and 1 <= month <= 12:
+        if valid_calendar_date(day, month, year):
             return format_document_date(day, month, year)
 
     month_first = re.search(
@@ -290,7 +306,7 @@ def parse_date_value(value: str) -> str:
         month = MONTHS[month_first.group(1).lower()]
         day = int(month_first.group(2))
         year = normalize_year(month_first.group(3))
-        if 1 <= day <= 31:
+        if valid_calendar_date(day, month, year):
             return format_document_date(day, month, year)
 
     day_first = re.search(
@@ -304,10 +320,142 @@ def parse_date_value(value: str) -> str:
         day = int(day_first.group(1))
         month = MONTHS[day_first.group(2).lower()]
         year = normalize_year(day_first.group(3))
-        if 1 <= day <= 31:
+        if valid_calendar_date(day, month, year):
             return format_document_date(day, month, year)
 
     return UNKNOWN
+
+
+POSITIVE_DATE_LABELS = (
+    "date of service",
+    "service date",
+    "study date",
+    "exam date",
+    "examination date",
+    "date of examination",
+    "procedure date",
+    "performed date",
+    "date performed",
+    "performed on",
+    "scan date",
+    "scanned date",
+    "imaging date",
+    "appointment date",
+    "operation date",
+    "surgery date",
+    "consultation date",
+    "referral date",
+    "requested date",
+    "request date",
+    "collection date",
+    "collection time",
+    "specimen collection date",
+    "visit date",
+    "admission date",
+    "discharge date",
+    "invoice date",
+    "document date",
+    "issue date",
+    "letter date",
+)
+
+
+NEGATIVE_DATE_CONTEXT_RE = re.compile(
+    r"\b("
+    r"date\s+of\s+birth|birth\s+date|dob|born|"
+    r"print(?:ed)?\s+date|printed|"
+    r"report\s+date|reported|generated|created|modified|"
+    r"downloaded|exported|dictated|transcribed|verified|"
+    r"finali[sz]ed|uploaded"
+    r")\b",
+    flags=re.IGNORECASE,
+)
+
+
+GENERIC_DATE_RE = re.compile(
+    r"(?im)^\s*date\s*[:\-–]?\s*([^\n]{4,80})$",
+)
+
+
+def has_negative_date_context(context: str) -> bool:
+    return bool(NEGATIVE_DATE_CONTEXT_RE.search(context))
+
+
+def label_pattern(label: str) -> str:
+    return r"\s+".join(re.escape(part) for part in label.split())
+
+
+def candidate_from_labelled_line(
+    lines: list[str],
+    index: int,
+    label: str,
+) -> tuple[str, str]:
+    line = lines[index]
+    pattern = (
+        rf"\b{label_pattern(label)}\b"
+        r"\s*(?:[:\-–]|\bon\b)?\s*"
+        r"([^\n]{0,100})"
+    )
+    match = re.search(pattern, line, flags=re.IGNORECASE)
+    if not match:
+        return UNKNOWN, ""
+
+    if has_negative_date_context(line[match.start():]):
+        return UNKNOWN, ""
+
+    value = match.group(1).strip()
+    document_date = parse_date_value(value)
+    evidence = line.strip()
+
+    if document_date == UNKNOWN and index + 1 < len(lines):
+        next_line = lines[index + 1].strip()
+        if next_line and not has_negative_date_context(next_line):
+            next_date = parse_date_value(next_line)
+            if next_date != UNKNOWN:
+                document_date = next_date
+                evidence = f"{line.strip()} {next_line}"
+
+    if document_date == UNKNOWN:
+        return UNKNOWN, ""
+
+    return document_date, evidence
+
+
+def candidate_from_generic_date_line(
+    lines: list[str],
+    index: int,
+) -> tuple[str, str]:
+    line = lines[index]
+    match = GENERIC_DATE_RE.search(line)
+    if not match:
+        return UNKNOWN, ""
+
+    context = " ".join(lines[max(0, index - 1): index + 2])
+    if has_negative_date_context(context):
+        return UNKNOWN, ""
+
+    document_date = parse_date_value(match.group(1))
+    if document_date == UNKNOWN:
+        return UNKNOWN, ""
+
+    return document_date, line.strip()
+
+
+def candidate_from_standalone_date_line(
+    lines: list[str],
+    index: int,
+) -> tuple[str, str]:
+    line = lines[index].strip()
+    if parse_date_value(line) == UNKNOWN:
+        return UNKNOWN, ""
+    if len(line) > 40:
+        return UNKNOWN, ""
+
+    context = " ".join(lines[max(0, index - 1): index + 2])
+    if has_negative_date_context(context):
+        return UNKNOWN, ""
+
+    return parse_date_value(line), line
 
 
 def extract_document_date(text: str) -> tuple[str, str]:
@@ -316,52 +464,44 @@ def extract_document_date(text: str) -> tuple[str, str]:
         "===== STRUCTURED VISION OCR LINES =====",
         1,
     )[0]
+    lines = [
+        re.sub(r"\s+", " ", line).strip()
+        for line in readable_text.splitlines()
+    ]
 
-    labels = (
-        "service date",
-        "study date",
-        "exam date",
-        "examination date",
-        "procedure date",
-        "performed date",
-        "appointment date",
-        "operation date",
-        "surgery date",
-        "consultation date",
-        "referral date",
-        "requested date",
-        "request date",
-        "collection date",
-        "visit date",
-        "date of service",
-        "invoice date",
-        "document date",
-        "issue date",
-    )
-
-    for label in labels:
-        pattern = (
-            rf"(?im)\b{re.escape(label)}\s*:\s*"
-            r"([^\n]{4,100})"
-        )
-        match = re.search(pattern, readable_text)
-        if not match:
+    for index in range(len(lines)):
+        if not lines[index]:
             continue
-        evidence = f"{label}: {match.group(1).strip()}"
-        document_date = parse_date_value(match.group(1))
+        for label in POSITIVE_DATE_LABELS:
+            document_date, evidence = candidate_from_labelled_line(
+                lines,
+                index,
+                label,
+            )
+            if document_date != UNKNOWN:
+                return document_date, evidence
+
+    # Generic "Date:" is useful for letters, but only after specific labels.
+    for index, line in enumerate(lines):
+        if not line:
+            continue
+        document_date, evidence = candidate_from_generic_date_line(
+            lines,
+            index,
+        )
         if document_date != UNKNOWN:
             return document_date, evidence
 
-    # Fallback for a generic letter/form date near the top of a document.
-    top_lines = "\n".join(readable_text.splitlines()[:12])
-    generic = re.search(
-        r"(?im)^\s*(?:date)\s*:\s*([^\n]{4,80})$",
-        top_lines,
-    )
-    if generic:
-        document_date = parse_date_value(generic.group(1))
+    # Many letters put a standalone date near the top before "Dear".
+    for index, line in enumerate(lines[:10]):
+        if not line:
+            continue
+        document_date, evidence = candidate_from_standalone_date_line(
+            lines,
+            index,
+        )
         if document_date != UNKNOWN:
-            return document_date, f"Date: {generic.group(1).strip()}"
+            return document_date, evidence
 
     return UNKNOWN, ""
 
@@ -999,6 +1139,52 @@ def evidence_is_supported(evidence: str, text: str) -> bool:
     )
 
 
+def context_for_evidence(evidence: str, text: str) -> str:
+    evidence = re.sub(r"\s+", " ", evidence).strip()
+    if not evidence:
+        return ""
+
+    readable_text = text.split(
+        "===== STRUCTURED VISION OCR LINES =====",
+        1,
+    )[0]
+    lines = [
+        re.sub(r"\s+", " ", line).strip()
+        for line in readable_text.splitlines()
+    ]
+
+    evidence_lower = evidence.lower()
+    for line in lines:
+        if evidence_lower in line.lower() or line.lower() in evidence_lower:
+            return line
+
+    return ""
+
+
+def model_date_is_supported(details: DocumentDetails, text: str) -> bool:
+    if details.document_date == UNKNOWN:
+        return False
+
+    if details.date_evidence:
+        evidence_date = parse_date_value(details.date_evidence)
+        if evidence_date != UNKNOWN and evidence_date != details.document_date:
+            return False
+
+        context = context_for_evidence(details.date_evidence, text)
+        if context and has_negative_date_context(context):
+            return False
+
+        if evidence_is_supported(details.date_evidence, text):
+            return True
+
+        # A model may provide just the raw date as evidence. Accept it only if
+        # the containing OCR line is not an excluded DOB/generated/report date.
+        if context and parse_date_value(details.date_evidence) != UNKNOWN:
+            return True
+
+    return False
+
+
 def name_is_supported(name: str, text: str) -> bool:
     name_words = [
         word
@@ -1068,6 +1254,9 @@ def constrain_model_details(
     if deterministic.document_date != UNKNOWN:
         details.document_date = deterministic.document_date
         details.date_evidence = deterministic.date_evidence
+    elif not model_date_is_supported(details, text):
+        details.document_date = UNKNOWN
+        details.date_evidence = ""
 
     return details
 
