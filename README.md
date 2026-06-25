@@ -43,8 +43,8 @@ The normal workflow is through a Finder Automator Quick Action:
    - Tick `Rename OSA PDFs`.
 3. Select one or more PDFs in Finder.
 4. Run `Quick Actions > Rename OSA PDFs`.
-5. Wait for the completion notification.
-6. Review any files ending in `- Unknown` or starting with `unknown -`.
+5. Wait for the completion popup.
+6. If files need review, choose `Review unknowns` to correct them immediately.
 
 macOS commonly requires the one-time `Customize…` step for Automator Quick
 Actions installed by a package rather than created manually in Automator.
@@ -68,6 +68,29 @@ The Automator entry point is:
 ```text
 patient_pdf_renamer.py
 ```
+
+## Review and local learning
+
+When a batch finishes with unknown enabled fields, the app shows:
+
+```text
+Renamed: 8
+Needs review: 2
+Errors: 0
+```
+
+Choose `Review unknowns` to correct each file. Corrections are used to rename
+the reviewed files and are saved locally in:
+
+```text
+~/Library/Application Support/OSA PDF Renamer/corrections.jsonl
+```
+
+That file may contain real OCR text and real document details. It is private
+local learning data and must not be committed to git.
+
+`tests/regression_cases.json` remains the curated, privacy-safe test suite. Add
+to it only with fictional/anonymised examples that have been manually reviewed.
 
 ## Requirements
 

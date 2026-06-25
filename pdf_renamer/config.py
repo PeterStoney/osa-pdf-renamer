@@ -84,6 +84,7 @@ def first_available_executable(*candidates: str | Path) -> str:
 PROJECT_DIR = resource_dir()
 CONFIG_PATH = PROJECT_DIR / "config.toml"
 USER_CONFIG_PATH = user_config_path()
+CORRECTIONS_PATH = USER_CONFIG_PATH.parent / "corrections.jsonl"
 VERSION_PATH = PROJECT_DIR / "VERSION"
 VISION_OCR_EXECUTABLE = Path(
     first_available_executable(

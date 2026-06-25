@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from pathlib import Path
 
 from .config import UNKNOWN
 
@@ -37,6 +38,10 @@ class VisionOCR:
 class RenameResult:
     renamed: bool
     needs_review: bool
+    original_path: Path | None = None
+    final_path: Path | None = None
+    details: DocumentDetails = field(default_factory=DocumentDetails)
+    ocr_text: str = ""
 
 
 @dataclass
@@ -46,3 +51,4 @@ class BatchSummary:
     unchanged: int = 0
     needs_review: int = 0
     errors: int = 0
+    review_items: list[RenameResult] = field(default_factory=list)

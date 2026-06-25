@@ -94,4 +94,8 @@ def rename_pdf(
     return RenameResult(
         renamed=renamed,
         needs_review=needs_review,
+        original_path=pdf_path,
+        final_path=new_path,
+        details=details,
+        ocr_text=text,
     )

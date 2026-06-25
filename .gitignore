@@ -25,5 +25,6 @@ dist/
 
 # Local/private overrides
 config.local.toml
+corrections.jsonl
 .env
 .env.*

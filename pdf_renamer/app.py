@@ -22,6 +22,7 @@ from .notifications import (
     send_macos_notification,
     send_text_notification,
 )
+from .review import review_unknowns
 from .update_check import check_for_updates
 from .workflow import rename_pdf
 
@@ -85,6 +86,7 @@ def main(
                     summary.unchanged += 1
                 if result.needs_review:
                     summary.needs_review += 1
+                    summary.review_items.append(result)
             except Exception as error:
                 summary.errors += 1
                 print(f"Failed to process {pdf_path.name}: {error}")
@@ -100,6 +102,26 @@ def main(
             print(f"Could not unload Ollama model: {error}")
 
         if notifications and summary.processed:
-            send_macos_notification(summary, dry_run=dry_run)
+            corrected_count = 0
+            if summary.review_items and not dry_run:
+                corrected_count = review_unknowns(
+                    summary,
+                    dry_run=dry_run,
+                    include_date=include_date,
+                    include_sender=include_sender,
+                    include_name=include_name,
+                    include_type=include_type,
+                )
+                if corrected_count:
+                    summary.needs_review = max(
+                        0,
+                        summary.needs_review - corrected_count,
+                    )
+                    send_text_notification(
+                        "OSA PDF Renamer review complete",
+                        f"{corrected_count} file(s) corrected.",
+                    )
+            else:
+                send_macos_notification(summary, dry_run=dry_run)
 
     return summary
