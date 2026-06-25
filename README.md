@@ -29,6 +29,9 @@ This tool is designed to run locally.
 
 Regression tests must use fictional patient details only.
 
+Model choice and longer-term cross-platform notes are documented in
+`docs/model_strategy.md`.
+
 ## Main workflow
 
 The normal workflow is through a Finder Automator Quick Action:
@@ -58,16 +61,15 @@ Coworker Macs should have:
 
 - macOS with Apple Vision OCR support
 - Ollama model:
-  - `qwen2.5:7b`
-- Xcode Command Line Tools for rebuilding the Swift Vision helper
+  - `qwen2.5:3b`
 
 The packaged app bundles Python, its Python dependencies, Poppler, Ollama, and
-the compiled Vision helper. The current default assumes the model is available
-locally through Ollama.
+the compiled Vision helper. Coworkers do not need Python, Conda, Homebrew, or
+Xcode Command Line Tools for normal use.
 
 The packaged app starts its bundled Ollama runtime automatically. If
-`qwen2.5:7b` is missing, the app will prompt once and download the model locally
-with `ollama pull qwen2.5:7b` while showing a native progress window.
+`qwen2.5:3b` is missing, the app will prompt once and download the model locally
+with `ollama pull qwen2.5:3b` while showing a native progress window.
 
 ## Configuration
 
@@ -82,9 +84,9 @@ notifications = true
 health_check = true
 
 [ollama]
-model = "qwen2.5:7b"
+model = "qwen2.5:3b"
 url = "http://localhost:11434/api/generate"
-obsolete_models = ["qwen2.5:3b"]
+obsolete_models = ["qwen2.5:7b"]
 ```
 
 Useful options:

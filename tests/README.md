@@ -31,3 +31,13 @@ scripts/smoke_test_packaged_app.command
 That smoke test checks the packaged app bundle, bundled local tools, app
 self-test, and Quick Action plist without needing coworker machines or live
 patient documents.
+
+To compare local Ollama models on synthetic OCR cases, run:
+
+```bash
+python tests/benchmark_models.py --models qwen2.5:3b qwen2.5:7b
+```
+
+Only use synthetic OCR in `model_benchmark_cases.json`. The benchmark is meant
+to reveal model-specific extraction behaviour, timing, and JSON reliability
+without testing on coworker machines or real patient files.

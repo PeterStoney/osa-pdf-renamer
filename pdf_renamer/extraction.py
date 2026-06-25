@@ -109,6 +109,115 @@ def strip_unknown_alternative(value: str) -> str:
     return value.strip()
 
 
+def format_imaging_document_type(value: str) -> str:
+    value = re.sub(r"\s+", " ", value).strip(" .:-")
+    match = re.fullmatch(
+        r"(MRI|CT|US|ULTRASOUND|XRAY|X-RAY|X RAY)\s+"
+        r"(?:OF\s+)?([A-Z][A-Z0-9 /,&+\-]{2,70})",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return UNKNOWN
+
+    modality_names = {
+        "MRI": "MRI",
+        "CT": "CT",
+        "US": "Ultrasound",
+        "ULTRASOUND": "Ultrasound",
+        "XRAY": "X-ray",
+        "X-RAY": "X-ray",
+        "X RAY": "X-ray",
+    }
+    modality = modality_names[re.sub(r"\s+", " ", match.group(1).upper())]
+    subject = match.group(2)
+    subject = re.sub(r"\bRT\b", "RIGHT", subject, flags=re.IGNORECASE)
+    subject = re.sub(r"\bLT\b", "LEFT", subject, flags=re.IGNORECASE)
+    subject = re.sub(
+        r"\b(?:REPORT|EXAMINATION|STUDY)\b",
+        "",
+        subject,
+        flags=re.IGNORECASE,
+    )
+    subject = re.sub(r"\s+", " ", subject).strip(" ,-")
+    if not subject:
+        return UNKNOWN
+    return f"{modality} {subject.lower()}"
+
+
+def likely_title_from_evidence(evidence: str) -> str:
+    evidence = re.sub(r"\s+", " ", evidence).strip(" .:-")
+    if not evidence:
+        return UNKNOWN
+
+    imaging_type = format_imaging_document_type(evidence)
+    if imaging_type != UNKNOWN:
+        return imaging_type
+
+    if len(evidence) > 80:
+        return UNKNOWN
+    if re.search(r"[.!?;]", evidence):
+        return UNKNOWN
+    if re.search(
+        r"\b(?:dear|dob|date|patient|referrer|doctor|please|reviewed|attached)\b",
+        evidence,
+        flags=re.IGNORECASE,
+    ):
+        return UNKNOWN
+
+    cleaned = clean_document_type(evidence)
+    if cleaned != UNKNOWN and cleaned[:1].islower():
+        cleaned = cleaned[:1].upper() + cleaned[1:]
+    return cleaned if cleaned != UNKNOWN else UNKNOWN
+
+
+def extract_visible_document_title(text: str) -> str:
+    """Read a concise, explicit document title from the top of the page."""
+    readable_text = text.split(
+        "===== STRUCTURED VISION OCR LINES =====",
+        1,
+    )[0]
+    title_aliases = {
+        "tax invoice": "Tax Invoice",
+        "invoice": "Invoice",
+        "receipt": "Receipt",
+        "statement": "Statement",
+        "quote": "Quote",
+        "purchase order": "Purchase order",
+        "clinical note": "Clinical note",
+        "consultation note": "Consultation note",
+        "initial physiotherapy assessment": "Initial physiotherapy assessment",
+        "physiotherapy assessment": "Physiotherapy assessment",
+    }
+
+    for raw_line in readable_text.splitlines()[:30]:
+        line = re.sub(r"\s+", " ", raw_line).strip(" .:-")
+        normalized = line.lower()
+        if normalized in title_aliases:
+            return title_aliases[normalized]
+
+    return UNKNOWN
+
+
+def recurring_form_type_from_model(document_type: str) -> str:
+    normalized = re.sub(r"\s+", " ", document_type).lower()
+    if normalized in {"op booking", "operation booking sheet"}:
+        return "OP booking"
+    if normalized in {
+        "op consent",
+        "operation consent",
+        "operation procedure consent form",
+        "operation/procedure consent form",
+        "consent for operation",
+    }:
+        return "OP consent"
+    if normalized in {"op stickers", "operation stickers"}:
+        return "OP stickers"
+    if normalized in {"reg form", "registration form"}:
+        return "Reg form"
+    return UNKNOWN
+
+
 MONTHS = {
     "jan": 1,
     "january": 1,
@@ -225,6 +334,9 @@ def extract_document_date(text: str) -> tuple[str, str]:
         "collection date",
         "visit date",
         "date of service",
+        "invoice date",
+        "document date",
+        "issue date",
     )
 
     for label in labels:
@@ -417,11 +529,17 @@ def detect_common_document_type(text: str) -> str:
     if "gp chronic condition management plan" in normalized:
         return "Chronic condition management plan"
 
+    visible_title = extract_visible_document_title(text)
+    if visible_title != UNKNOWN:
+        return visible_title
+
     if (
         "dear " in normalized
         and re.search(r"\bre\s*:", normalized)
         and re.search(
-            r"\b(?:thank you|thanks(?: very much)?) for seeing\b",
+            r"\b(?:thank you|thanks(?: very much)?) for seeing\b"
+            r"|\bplease\s+(?:assess|review|see|evaluate)\b"
+            r"|\b(?:refer|referral)\b",
             normalized,
         )
     ):
@@ -680,6 +798,8 @@ def extract_explicit_patient_name(text: str) -> str:
         r"([A-Za-z][A-Za-z' -]+,\s*[A-Za-z][A-Za-z' -]+)\s*$",
         r"(?im)^\s*Patient Name\s*:\s*"
         r"([A-Za-z][A-Za-z' -]{2,60})\s*$",
+        r"(?im)^\s*Patient\s*:\s*"
+        r"([A-Za-z][A-Za-z' -]{2,60})\s*$",
         rf"(?im)^\s*Name\s*:\s*{title}\.?\s+"
         r"([A-Za-z][A-Za-z' -]{2,60})\s*$",
         r"(?im)^\s*Name\s*:\s*"
@@ -843,8 +963,12 @@ def parse_model_response(raw: str) -> DocumentDetails:
     if parsed_document_date == UNKNOWN and str(document_date).lower() == UNKNOWN:
         parsed_document_date = UNKNOWN
 
+    cleaned_name = clean_name(name)
+    if not valid_name(cleaned_name):
+        cleaned_name = UNKNOWN
+
     return DocumentDetails(
-        patient_name=clean_name(name),
+        patient_name=cleaned_name,
         document_type=clean_document_type(document_type),
         document_date=parsed_document_date,
         raw_model_response=raw,
@@ -898,6 +1022,56 @@ def response_has_expected_schema(raw: str) -> bool:
     )
 
 
+def constrain_model_details(
+    details: DocumentDetails,
+    text: str,
+    deterministic: DocumentDetails,
+) -> DocumentDetails:
+    """Reject or repair model fields using deterministic local evidence."""
+    common_document_type = deterministic.document_type
+
+    if (
+        details.patient_name != UNKNOWN
+        and not name_is_supported(details.patient_name, text)
+    ):
+        details.patient_name = UNKNOWN
+
+    deterministic_name = deterministic.patient_name
+    if deterministic_name != UNKNOWN:
+        details.patient_name = deterministic_name
+        details.name_evidence = deterministic.name_evidence
+
+    recurring_type = recurring_form_type_from_model(details.document_type)
+    if recurring_type != UNKNOWN:
+        if common_document_type == recurring_type:
+            details.document_type = recurring_type
+        else:
+            details.document_type = UNKNOWN
+
+    if common_document_type != UNKNOWN:
+        details.document_type = common_document_type
+        details.type_evidence = deterministic.type_evidence
+
+    if common_document_type == UNKNOWN:
+        evidence_type = likely_title_from_evidence(details.type_evidence)
+        if evidence_type != UNKNOWN:
+            details.document_type = evidence_type
+        elif (
+            details.document_type != UNKNOWN
+            and not (
+                evidence_is_supported(details.type_evidence, text)
+                or evidence_is_supported(details.document_type, text)
+            )
+        ):
+            details.document_type = UNKNOWN
+
+    if deterministic.document_date != UNKNOWN:
+        details.document_date = deterministic.document_date
+        details.date_evidence = deterministic.date_evidence
+
+    return details
+
+
 def build_evidence_extraction_prompt(text: str) -> str:
     return f"""
 Select the patient name and document type from the OCR below.
@@ -922,6 +1096,9 @@ Rules:
 - Ignore doctors, referrers, radiologists, surgeons, carers, and contacts.
 - Convert surname-first names to normal order and remove titles.
 - Prefer an explicit document title, Examination, Study, or procedure heading.
+- Do not use an example document type unless that exact type appears in OCR.
+- Do not use OP booking, OP consent, OP stickers, or Reg form unless the OCR
+  clearly shows that exact recurring form.
 - For document_date, prefer service/study/examination/procedure/requested/
   appointment/operation dates. Never use Date of Birth/DOB or report export
   dates as document_date.
@@ -998,31 +1175,11 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
             raw_model_response=f"ERROR: {e}",
         )
 
-    details = parse_model_response(raw)
-    if (
-        details.patient_name != UNKNOWN
-        and not name_is_supported(details.patient_name, text)
-    ):
-        details.patient_name = UNKNOWN
-    if (
-        common_document_type == UNKNOWN
-        and details.document_type != UNKNOWN
-        and not (
-            evidence_is_supported(details.type_evidence, text)
-            or evidence_is_supported(details.document_type, text)
-        )
-    ):
-        details.document_type = UNKNOWN
-
-    if common_document_type != UNKNOWN:
-        details.document_type = common_document_type
-        details.type_evidence = deterministic.type_evidence
-    if deterministic.patient_name != UNKNOWN:
-        details.patient_name = deterministic.patient_name
-        details.name_evidence = deterministic.name_evidence
-    if deterministic.document_date != UNKNOWN:
-        details.document_date = deterministic.document_date
-        details.date_evidence = deterministic.date_evidence
+    details = constrain_model_details(
+        parse_model_response(raw),
+        text,
+        deterministic,
+    )
     if common_document_type == "Reg form":
         labeled_name = extract_primary_labeled_name(text)
         if labeled_name != UNKNOWN:
@@ -1050,34 +1207,22 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
         f"FALLBACK RESPONSE:\n{fallback_details.raw_model_response}"
     )
 
-    if (
-        fallback_details.patient_name != UNKNOWN
-        and not name_is_supported(fallback_details.patient_name, text)
-    ):
-        fallback_details.patient_name = UNKNOWN
+    fallback_details = constrain_model_details(
+        fallback_details,
+        text,
+        deterministic,
+    )
 
     if valid_name(fallback_details.patient_name):
-        if common_document_type != UNKNOWN:
-            fallback_details.document_type = common_document_type
-            fallback_details.type_evidence = deterministic.type_evidence
-        elif fallback_details.document_type == UNKNOWN:
+        if fallback_details.document_type == UNKNOWN:
             fallback_details.document_type = details.document_type
 
-        if deterministic.document_date != UNKNOWN:
-            fallback_details.document_date = deterministic.document_date
-            fallback_details.date_evidence = deterministic.date_evidence
-        elif fallback_details.document_date == UNKNOWN:
+        if fallback_details.document_date == UNKNOWN:
             fallback_details.document_date = details.document_date
 
         return fallback_details
 
     fallback_details.patient_name = UNKNOWN
-    if common_document_type != UNKNOWN:
-        fallback_details.document_type = common_document_type
-        fallback_details.type_evidence = deterministic.type_evidence
-    if deterministic.document_date != UNKNOWN:
-        fallback_details.document_date = deterministic.document_date
-        fallback_details.date_evidence = deterministic.date_evidence
 
     return fallback_details
 
