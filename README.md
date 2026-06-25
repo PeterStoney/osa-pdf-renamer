@@ -6,13 +6,13 @@ The tool reads the first page of each selected PDF, extracts the patient name
 and document type, and renames the file safely:
 
 ```text
-Patient Name - Document type.pdf
+Document date - Patient Name - Document type.pdf
 ```
 
 Examples:
 
 ```text
-John Smith - MRI left knee.pdf
+16-05-26 - John Smith - MRI left knee.pdf
 John Smith - Unknown.pdf
 unknown - Reg form.pdf
 ```
@@ -58,7 +58,7 @@ Coworker Macs should have:
 
 - macOS with Apple Vision OCR support
 - Ollama model:
-  - `qwen2.5:7b`
+  - `qwen2.5:3b`
 - Xcode Command Line Tools for rebuilding the Swift Vision helper
 
 The packaged app bundles Python, its Python dependencies, Poppler, Ollama, and
@@ -66,8 +66,8 @@ the compiled Vision helper. The current default assumes the model is available
 locally through Ollama.
 
 The packaged app starts its bundled Ollama runtime automatically. If
-`qwen2.5:7b` is missing, the app will prompt once and download the model locally
-with `ollama pull qwen2.5:7b` while showing a native progress window.
+`qwen2.5:3b` is missing, the app will prompt once and download the model locally
+with `ollama pull qwen2.5:3b` while showing a native progress window.
 
 ## Configuration
 
@@ -82,8 +82,9 @@ notifications = true
 health_check = true
 
 [ollama]
-model = "qwen2.5:7b"
+model = "qwen2.5:3b"
 url = "http://localhost:11434/api/generate"
+obsolete_models = ["qwen2.5:7b"]
 ```
 
 Useful options:
@@ -93,6 +94,8 @@ Useful options:
 - `vision_dpi`: scan rendering resolution, clamped to 150–300.
 - `notifications`: show macOS batch completion notifications.
 - `health_check`: verify dependencies before processing.
+- `obsolete_models`: specific old Ollama models the app may remove after the
+  current model is installed.
 
 The packaged coworker default is `debug_mode = "off"` for clean operation. Use
 `debug_mode = "failures"` only when deliberately troubleshooting a problematic

@@ -22,7 +22,7 @@ The app bundles:
 - Ollama runtime used to run the local model
 
 It bundles the Ollama runtime, but not the model. On first run, the app will
-start bundled Ollama and download `qwen2.5:7b` if the model is missing.
+start bundled Ollama and download `qwen2.5:3b` if the model is missing.
 
 The bundled default config uses `dry_run = false` and `debug_mode = "off"` for
 clean coworker operation.

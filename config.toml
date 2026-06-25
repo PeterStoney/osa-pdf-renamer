@@ -10,5 +10,6 @@ update_check = true
 github_repo = "PeterStoney/osa-pdf-renamer"
 
 [ollama]
-model = "qwen2.5:7b"
+model = "qwen2.5:3b"
 url = "http://localhost:11434/api/generate"
+obsolete_models = ["qwen2.5:7b"]

@@ -9,6 +9,7 @@ from pathlib import Path
 from .config import (
     OLLAMA_EXECUTABLE,
     OLLAMA_MODEL,
+    OLLAMA_OBSOLETE_MODELS,
     PDFINFO_EXECUTABLE,
     PDFTOPPM_EXECUTABLE,
     PDFTOTEXT_EXECUTABLE,
@@ -95,6 +96,25 @@ def installed_ollama_models() -> set[str]:
         for line in result.stdout.splitlines()[1:]
         if line.split()
     }
+
+
+def remove_obsolete_ollama_models(installed_models: set[str]) -> None:
+    """Best-effort cleanup for specific old models after a model migration."""
+    for model in OLLAMA_OBSOLETE_MODELS:
+        if model not in installed_models:
+            continue
+        result = subprocess.run(
+            [OLLAMA_EXECUTABLE, "rm", model],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode == 0:
+            print(f"Removed obsolete Ollama model: {model}")
+        else:
+            detail = clean_command_output(result.stderr or result.stdout)
+            print(f"Could not remove obsolete Ollama model {model}: {detail}")
 
 
 def clean_command_output(text: str) -> str:
@@ -306,6 +326,9 @@ def ensure_ollama_ready(auto_setup: bool = False) -> list[str]:
                 )
         else:
             errors.append(f"Ollama model {OLLAMA_MODEL} is not installed")
+
+    if auto_setup and not errors:
+        remove_obsolete_ollama_models(installed_ollama_models())
 
     return errors
 

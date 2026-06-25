@@ -132,12 +132,17 @@ NOTIFICATIONS = bool(_RENAMER.get("notifications", True))
 HEALTH_CHECK = bool(_RENAMER.get("health_check", True))
 UPDATE_CHECK = bool(_RENAMER.get("update_check", True))
 
-OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:7b"))
+OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:3b"))
 OLLAMA_URL = str(
     _OLLAMA.get(
         "url",
         "http://localhost:11434/api/generate",
     )
+)
+OLLAMA_OBSOLETE_MODELS = tuple(
+    str(model)
+    for model in _OLLAMA.get("obsolete_models", ["qwen2.5:7b"])
+    if str(model) != OLLAMA_MODEL
 )
 
 GITHUB_REPO = str(
