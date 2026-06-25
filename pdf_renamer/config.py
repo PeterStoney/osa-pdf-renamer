@@ -201,6 +201,7 @@ HEALTH_CHECK = bool(_RENAMER.get("health_check", True))
 UPDATE_CHECK = bool(_RENAMER.get("update_check", True))
 
 INCLUDE_DATE = bool(_OUTPUT.get("include_date", True))
+INCLUDE_SENDER = bool(_OUTPUT.get("include_sender", False))
 INCLUDE_NAME = bool(_OUTPUT.get("include_name", True))
 INCLUDE_TYPE = bool(_OUTPUT.get("include_type", True))
 

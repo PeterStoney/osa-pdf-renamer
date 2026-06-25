@@ -20,6 +20,16 @@ def main() -> int:
         "16-05-26 - John Smith - MRI right knee",
     )
     expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            "Example Radiology",
+            include_sender=True,
+        ),
+        "16-05-26 - Example Radiology - John Smith - MRI right knee",
+    )
+    expect(
         build_filename("John Smith", "MRI right knee"),
         "John Smith - MRI right knee",
     )
@@ -32,9 +42,20 @@ def main() -> int:
             "John Smith",
             "MRI right knee",
             "16-05-26",
+            "Example Radiology",
             include_date=False,
+            include_sender=True,
         ),
-        "John Smith - MRI right knee",
+        "Example Radiology - John Smith - MRI right knee",
+    )
+    expect(
+        build_filename(
+            "John Smith",
+            "MRI right knee",
+            "16-05-26",
+            include_sender=True,
+        ),
+        "16-05-26 - John Smith - MRI right knee",
     )
     expect(
         build_filename(

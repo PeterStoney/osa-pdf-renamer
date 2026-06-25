@@ -2,36 +2,78 @@
   {
     "name": "letter with patient and multiple doctors",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nDr Avery Referrer\nOrthopaedic Specialist\n\nDear Dr Surgeon,\n\nRe: Ms Alex Sample\nDOB: 01/01/1970\n\nI reviewed Alex today regarding worsening right knee pain. Please find attached my clinical note.\n\nYours sincerely,\nDr Avery Referrer\nDate: 16/05/2026\n",
-    "patient_names": ["Alex Sample"],
-    "document_types": ["Clinical note", "Letter or note"],
-    "document_date": "16-05-26"
+    "patient_names": [
+      "Alex Sample"
+    ],
+    "document_types": [
+      "Clinical note",
+      "Letter or note",
+      "Clinical Note"
+    ],
+    "document_date": "16-05-26",
+    "senders": [
+      "Dr Avery Referrer",
+      "unknown"
+    ]
   },
   {
     "name": "specialist referral without thank-you phrase",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Family Clinic\nDr Morgan GP\n\nDear Orthopaedic Surgeon,\n\nRE: Mr William Capell\nDOB: 12/12/1960\n\nPlease assess William for management of bilateral knee and left hip osteoarthritis.\n\nReferral date: 03/06/2026\n",
-    "patient_names": ["William Capell"],
-    "document_types": ["Referral", "Referral letter", "Referral to Orthopaedic Surgeon"],
-    "document_date": "03-06-26"
+    "patient_names": [
+      "William Capell"
+    ],
+    "document_types": [
+      "Referral",
+      "Referral letter",
+      "Referral to Orthopaedic Surgeon"
+    ],
+    "document_date": "03-06-26",
+    "senders": [
+      "Example Family Clinic"
+    ]
   },
   {
     "name": "radiology report with referrer trap",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Radiology\nReferrer: Dr Alex Doctor\nPatient: MORGAN EXAMPLE\nDOB: 02/02/1972\nStudy Date: 21/06/2026\n\nMRI LEFT SHOULDER\n\nFindings: Moderate supraspinatus tendinosis.\n",
-    "patient_names": ["Morgan Example"],
-    "document_types": ["MRI left shoulder"],
-    "document_date": "21-06-26"
+    "patient_names": [
+      "Morgan Example"
+    ],
+    "document_types": [
+      "MRI left shoulder"
+    ],
+    "document_date": "21-06-26",
+    "senders": [
+      "Example Radiology"
+    ]
   },
   {
     "name": "physio report with appointment date",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Physiotherapy\nAppointment Date: 07/04/2026\n\nPatient Name: Jordan North Field\nDOB: 09/09/1971\n\nInitial physiotherapy assessment\nRight hip osteoarthritis and gait retraining plan.\nTherapist: Casey Clinician\n",
-    "patient_names": ["Jordan North Field"],
-    "document_types": ["Initial physiotherapy assessment", "Physiotherapy assessment report"],
-    "document_date": "07-04-26"
+    "patient_names": [
+      "Jordan North Field"
+    ],
+    "document_types": [
+      "Initial physiotherapy assessment",
+      "Physiotherapy assessment report"
+    ],
+    "document_date": "07-04-26",
+    "senders": [
+      "Example Physiotherapy"
+    ]
   },
   {
     "name": "non-medical finance-style invoice",
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Supplies Pty Ltd\nInvoice Date: 11/05/2026\nInvoice Number: INV-2026-1042\nBill To: Example Sports Clinic\n\nTax Invoice\nOffice equipment and consumables\nTotal due: $482.00\n",
-    "patient_names": ["unknown"],
-    "document_types": ["Tax Invoice", "Invoice"],
-    "document_date": "11-05-26"
+    "patient_names": [
+      "unknown"
+    ],
+    "document_types": [
+      "Tax Invoice",
+      "Invoice"
+    ],
+    "document_date": "11-05-26",
+    "senders": [
+      "Example Supplies Pty Ltd"
+    ]
   }
 ]

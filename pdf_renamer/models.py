@@ -6,10 +6,12 @@ from .config import UNKNOWN
 @dataclass
 class DocumentDetails:
     patient_name: str = UNKNOWN
+    sender: str = UNKNOWN
     document_type: str = UNKNOWN
     document_date: str = UNKNOWN
     raw_model_response: str = ""
     name_evidence: str = ""
+    sender_evidence: str = ""
     type_evidence: str = ""
     date_evidence: str = ""
     confidence: float = 0.0

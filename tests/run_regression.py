@@ -27,16 +27,19 @@ def run_case(case):
 
     details = renamer.extract_document_details_with_ollama(text)
 
-    expected = (
+    expected = [
         case["patient_name"],
         case["document_type"],
         case.get("document_date", renamer.UNKNOWN),
-    )
-    actual = (
+    ]
+    actual = [
         details.patient_name,
         details.document_type,
         details.document_date,
-    )
+    ]
+    if "sender" in case:
+        expected.insert(1, case["sender"])
+        actual.insert(1, details.sender)
 
     if actual == expected:
         return "PASS", " - ".join(actual)

@@ -62,6 +62,51 @@ def valid_name(name: str) -> bool:
     return True
 
 
+def clean_sender(sender: str) -> str:
+    if not isinstance(sender, str):
+        return UNKNOWN
+
+    sender = re.sub(r"[\x00-\x1f/:\\]", " ", sender)
+    sender = re.sub(
+        r"\b(?:ABN|ACN|Phone|Fax|Email|Tel)\b.*$",
+        "",
+        sender,
+        flags=re.IGNORECASE,
+    )
+    sender = re.sub(r"\s+", " ", sender).strip(" .,-_")
+    if not sender or sender.lower() == UNKNOWN:
+        return UNKNOWN
+    return sender[:100]
+
+
+def valid_sender(sender: str) -> bool:
+    sender = clean_sender(sender)
+    if sender == UNKNOWN:
+        return False
+    if len(sender) < 3:
+        return False
+    if parse_date_value(sender) != UNKNOWN:
+        return False
+    bad_words = {
+        "patient",
+        "dob",
+        "date",
+        "invoice date",
+        "total",
+        "amount",
+        "findings",
+        "clinical",
+        "dear",
+        "re",
+        "unknown",
+    }
+    if sender.lower() in bad_words:
+        return False
+    if re.fullmatch(r"[\d\s.,$-]+", sender):
+        return False
+    return True
+
+
 def clean_document_type(document_type: str) -> str:
     if not isinstance(document_type, str):
         return UNKNOWN
@@ -217,6 +262,17 @@ def recurring_form_type_from_model(document_type: str) -> str:
     if normalized in {"reg form", "registration form"}:
         return "Reg form"
     return UNKNOWN
+
+
+def is_sender_based_document_type(document_type: str) -> bool:
+    return document_type.lower() in {
+        "invoice",
+        "tax invoice",
+        "receipt",
+        "statement",
+        "quote",
+        "purchase order",
+    }
 
 
 MONTHS = {
@@ -920,6 +976,53 @@ def extract_primary_radiology_name(text: str) -> str:
     return name if valid_name(name) else UNKNOWN
 
 
+def extract_sender(text: str) -> tuple[str, str]:
+    """Extract the document sender/source from obvious letterhead lines."""
+    readable_text = text.split(
+        "===== STRUCTURED VISION OCR LINES =====",
+        1,
+    )[0]
+    raw_lines = [
+        re.sub(r"\s+", " ", line).strip()
+        for line in readable_text.splitlines()
+    ]
+    lines = [line for line in raw_lines if line]
+
+    labelled_patterns = (
+        r"(?im)^\s*(?:From|Sender|Provider|Practice|Clinic|Facility|"
+        r"Organisation|Organization|Radiology provider|Supplier)\s*:\s*"
+        r"([^\n]{3,100})$",
+        r"(?im)^\s*(?:Issued by|Prepared by|Sent by)\s*:\s*"
+        r"([^\n]{3,100})$",
+    )
+    for pattern in labelled_patterns:
+        match = re.search(pattern, readable_text)
+        if not match:
+            continue
+        sender = clean_sender(match.group(1))
+        if valid_sender(sender):
+            return sender, match.group(0).strip()
+
+    skip_re = re.compile(
+        r"\b("
+        r"embedded pdf text|macos vision|structured vision|"
+        r"patient|dob|date|invoice date|invoice number|bill to|"
+        r"dear|re\s*:|findings|clinical|examination|procedure|"
+        r"phone|fax|email|www|@"
+        r")\b",
+        flags=re.IGNORECASE,
+    )
+
+    for line in lines[:8]:
+        if skip_re.search(line):
+            continue
+        sender = clean_sender(line)
+        if valid_sender(sender):
+            return sender, line
+
+    return UNKNOWN, ""
+
+
 def extract_explicit_patient_name(text: str) -> str:
     """Extract names from general patient-labelled layouts."""
     readable_text = text.split(
@@ -1005,6 +1108,7 @@ def extract_structured_re_name(text: str) -> str:
 def deterministic_document_details(text: str) -> DocumentDetails:
     document_type = detect_common_document_type(text)
     document_date, date_evidence = extract_document_date(text)
+    sender, sender_evidence = extract_sender(text)
     patient_name = UNKNOWN
 
     if document_type == "Reg form":
@@ -1021,9 +1125,11 @@ def deterministic_document_details(text: str) -> DocumentDetails:
 
     return DocumentDetails(
         patient_name=patient_name,
+        sender=sender,
         document_type=document_type,
         document_date=document_date,
         name_evidence=patient_name if patient_name != UNKNOWN else "",
+        sender_evidence=sender_evidence,
         type_evidence=document_type if document_type != UNKNOWN else "",
         date_evidence=date_evidence,
         confidence=1.0 if (
@@ -1038,6 +1144,7 @@ def parse_model_response(raw: str) -> DocumentDetails:
     try:
         data = json.loads(raw)
         name = strip_unknown_alternative(data.get("patient_name", UNKNOWN))
+        sender = strip_unknown_alternative(data.get("sender", UNKNOWN))
         document_type = strip_unknown_alternative(
             data.get("document_type", UNKNOWN)
         )
@@ -1045,6 +1152,7 @@ def parse_model_response(raw: str) -> DocumentDetails:
             data.get("document_date", UNKNOWN)
         )
         name_evidence = data.get("name_evidence", "")
+        sender_evidence = data.get("sender_evidence", "")
         type_evidence = data.get("type_evidence", "")
         date_evidence = data.get("date_evidence", "")
         try:
@@ -1053,9 +1161,14 @@ def parse_model_response(raw: str) -> DocumentDetails:
             confidence = 0.0
     except Exception:
         name_match = re.search(r'"patient_name"\s*:\s*"([^"]+)"', raw)
+        sender_match = re.search(r'"sender"\s*:\s*"([^"]+)"', raw)
         type_match = re.search(r'"document_type"\s*:\s*"([^"]+)"', raw)
         name_evidence_match = re.search(
             r'"name_evidence"\s*:\s*"([^"]*)"',
+            raw,
+        )
+        sender_evidence_match = re.search(
+            r'"sender_evidence"\s*:\s*"([^"]*)"',
             raw,
         )
         type_evidence_match = re.search(
@@ -1065,6 +1178,11 @@ def parse_model_response(raw: str) -> DocumentDetails:
         name = (
             strip_unknown_alternative(name_match.group(1))
             if name_match
+            else UNKNOWN
+        )
+        sender = (
+            strip_unknown_alternative(sender_match.group(1))
+            if sender_match
             else UNKNOWN
         )
         document_type = (
@@ -1081,6 +1199,11 @@ def parse_model_response(raw: str) -> DocumentDetails:
         name_evidence = (
             name_evidence_match.group(1)
             if name_evidence_match
+            else ""
+        )
+        sender_evidence = (
+            sender_evidence_match.group(1)
+            if sender_evidence_match
             else ""
         )
         type_evidence = (
@@ -1106,13 +1229,18 @@ def parse_model_response(raw: str) -> DocumentDetails:
     cleaned_name = clean_name(name)
     if not valid_name(cleaned_name):
         cleaned_name = UNKNOWN
+    cleaned_sender = clean_sender(sender)
+    if not valid_sender(cleaned_sender):
+        cleaned_sender = UNKNOWN
 
     return DocumentDetails(
         patient_name=cleaned_name,
+        sender=cleaned_sender,
         document_type=clean_document_type(document_type),
         document_date=parsed_document_date,
         raw_model_response=raw,
         name_evidence=str(name_evidence).strip(),
+        sender_evidence=str(sender_evidence).strip(),
         type_evidence=str(type_evidence).strip(),
         date_evidence=str(date_evidence).strip(),
         confidence=max(0.0, min(confidence, 1.0)),
@@ -1195,6 +1323,37 @@ def name_is_supported(name: str, text: str) -> bool:
     return bool(name_words) and all(word in text_words for word in name_words)
 
 
+def sender_is_supported(sender: str, evidence: str, text: str) -> bool:
+    if sender == UNKNOWN:
+        return False
+
+    sender_words = [
+        word
+        for word in normalized_words(sender)
+        if len(word) >= 2
+    ]
+    if not sender_words:
+        return False
+
+    if evidence.strip():
+        if not evidence_is_supported(evidence, text):
+            return False
+        if re.search(
+            r"\b(?:referrer|bill\s+to|recipient|to|dear|patient)\b",
+            evidence,
+            flags=re.IGNORECASE,
+        ):
+            return False
+        evidence_words = set(normalized_words(evidence))
+        return all(word in evidence_words for word in sender_words)
+
+    text_words = set(normalized_words(text))
+    return bool(sender_words) and all(
+        word in text_words
+        for word in sender_words
+    )
+
+
 def response_has_expected_schema(raw: str) -> bool:
     try:
         data = json.loads(raw)
@@ -1204,6 +1363,7 @@ def response_has_expected_schema(raw: str) -> bool:
     return (
         isinstance(data, dict)
         and "patient_name" in data
+        and "sender" in data
         and "document_type" in data
     )
 
@@ -1226,6 +1386,17 @@ def constrain_model_details(
     if deterministic_name != UNKNOWN:
         details.patient_name = deterministic_name
         details.name_evidence = deterministic.name_evidence
+
+    if (
+        details.sender != UNKNOWN
+        and not sender_is_supported(details.sender, details.sender_evidence, text)
+    ):
+        details.sender = UNKNOWN
+        details.sender_evidence = ""
+
+    if deterministic.sender != UNKNOWN:
+        details.sender = deterministic.sender
+        details.sender_evidence = deterministic.sender_evidence
 
     recurring_type = recurring_form_type_from_model(details.document_type)
     if recurring_type != UNKNOWN:
@@ -1265,12 +1436,14 @@ def build_evidence_extraction_prompt(text: str) -> str:
     return f"""
 Select the patient name and document type from the OCR below.
 
-Return one JSON object with exactly these seven keys and no others:
+Return one JSON object with exactly these nine keys and no others:
 {{
   "patient_name": "unknown",
+  "sender": "unknown",
   "document_type": "unknown",
   "document_date": "unknown",
   "name_evidence": "short exact OCR excerpt",
+  "sender_evidence": "short exact OCR excerpt",
   "type_evidence": "short exact OCR excerpt",
   "date_evidence": "short exact OCR excerpt",
   "confidence": 0.0
@@ -1284,6 +1457,13 @@ Rules:
 - Prefer names labelled Patient/Name/Re or positioned beside DOB/patient ID.
 - Ignore doctors, referrers, radiologists, surgeons, carers, and contacts.
 - Convert surname-first names to normal order and remove titles.
+- sender is the organisation, practice, clinic, company, doctor, or person who
+  produced or sent the document. It is not the patient/person the file is about.
+- Prefer sender from letterhead, From/Sender/Provider/Practice/Supplier labels,
+  or a clear top-of-page organisation name.
+- Do not use Referrer, Bill To, recipient, addressee, or Dear/To names as
+  sender unless the OCR explicitly says they produced/sent the document.
+- sender_evidence must include the sender text itself.
 - Prefer an explicit document title, Examination, Study, or procedure heading.
 - Do not use an example document type unless that exact type appears in OCR.
 - Do not use OP booking, OP consent, OP stickers, or Reg form unless the OCR
@@ -1332,6 +1512,16 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
     ):
         deterministic.raw_model_response = "SKIPPED: deterministic extraction"
         return deterministic
+    if (
+        deterministic.sender != UNKNOWN
+        and deterministic.document_type != UNKNOWN
+        and deterministic.document_date != UNKNOWN
+        and is_sender_based_document_type(deterministic.document_type)
+    ):
+        deterministic.raw_model_response = (
+            "SKIPPED: deterministic sender-based extraction"
+        )
+        return deterministic
     if deterministic.document_type == "Reg form":
         deterministic.raw_model_response = (
             "SKIPPED: registration patient fields incomplete"
@@ -1359,10 +1549,8 @@ def extract_document_details_with_ollama(text: str) -> DocumentDetails:
         raw = response.json().get("response", "").strip()
     except Exception as e:
         print(f"Ollama failed: {e}")
-        return DocumentDetails(
-            document_type=common_document_type,
-            raw_model_response=f"ERROR: {e}",
-        )
+        deterministic.raw_model_response = f"ERROR: {e}"
+        return deterministic
 
     details = constrain_model_details(
         parse_model_response(raw),

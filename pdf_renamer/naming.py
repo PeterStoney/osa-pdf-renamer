@@ -9,8 +9,10 @@ def build_filename(
     patient_name: str,
     document_type: str,
     document_date: str = UNKNOWN,
+    sender: str = UNKNOWN,
     *,
     include_date: bool = True,
+    include_sender: bool = False,
     include_name: bool = True,
     include_type: bool = True,
 ) -> str:
@@ -19,6 +21,8 @@ def build_filename(
     parts = []
     if include_date and document_date != UNKNOWN:
         parts.append(document_date)
+    if include_sender and sender != UNKNOWN:
+        parts.append(sender)
     if include_name:
         parts.append(patient_name)
     if include_type:

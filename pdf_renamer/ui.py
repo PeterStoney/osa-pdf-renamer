@@ -16,7 +16,8 @@ from .config import (
 
 OUTPUT_OPTIONS = {
     "Date": "include_date",
-    "Name": "include_name",
+    "Sender": "include_sender",
+    "Person / subject": "include_name",
     "Document type": "include_type",
 }
 
@@ -57,8 +58,10 @@ def choose_enabled_output_parts() -> list[str] | None:
     defaults = []
     if settings["include_date"]:
         defaults.append("Date")
+    if settings["include_sender"]:
+        defaults.append("Sender")
     if settings["include_name"]:
-        defaults.append("Name")
+        defaults.append("Person / subject")
     if settings["include_type"]:
         defaults.append("Document type")
 
@@ -96,6 +99,7 @@ def current_output_settings() -> dict[str, bool]:
     output = effective_config().get("output", {})
     return {
         "include_date": bool(output.get("include_date", True)),
+        "include_sender": bool(output.get("include_sender", False)),
         "include_name": bool(output.get("include_name", True)),
         "include_type": bool(output.get("include_type", True)),
     }
@@ -106,6 +110,8 @@ def current_format_preview() -> str:
     parts = []
     if settings["include_date"]:
         parts.append("16-05-26")
+    if settings["include_sender"]:
+        parts.append("Example Radiology")
     if settings["include_name"]:
         parts.append("John Smith")
     if settings["include_type"]:

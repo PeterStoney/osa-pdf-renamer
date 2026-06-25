@@ -155,5 +155,29 @@
     "ocr_text": "===== EMBEDDED PDF TEXT =====\nPatient Name: SAMPLE, ALEX\nDate of Birth: 01/01/2020\nProcedure Description: MRI RT KNEE\nEXAMINATION:\nMRI right knee.",
     "patient_name": "Alex Sample",
     "document_type": "MRI right knee"
+  },
+  {
+    "name": "Referral sender is read from letterhead",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Family Clinic\nDr Morgan GP\n18 June 2026\n\nDear Surgeon,\nRE: Mr ALEX SAMPLE\nDOB: 01/01/1970\nPlease review Alex for right knee pain.",
+    "patient_name": "Alex Sample",
+    "sender": "Example Family Clinic",
+    "document_type": "Referral",
+    "document_date": "18-06-26"
+  },
+  {
+    "name": "Radiology sender is read from top provider line",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Radiology\nPatient: MORGAN EXAMPLE\nDOB: 02/02/1972\nStudy Date: 21/06/2026\nMRI LEFT SHOULDER\nFindings: Moderate supraspinatus tendinosis.",
+    "patient_name": "Morgan Example",
+    "sender": "Example Radiology",
+    "document_type": "MRI left shoulder",
+    "document_date": "21-06-26"
+  },
+  {
+    "name": "Finance sender is read from supplier line",
+    "ocr_text": "===== EMBEDDED PDF TEXT =====\nExample Supplies Pty Ltd\nInvoice Date: 11/05/2026\nInvoice Number: INV-2026-1042\nBill To: Example Sports Clinic\n\nTax Invoice\nOffice equipment and consumables\nTotal due: $482.00\n",
+    "patient_name": "unknown",
+    "sender": "Example Supplies Pty Ltd",
+    "document_type": "Tax Invoice",
+    "document_date": "11-05-26"
   }
 ]

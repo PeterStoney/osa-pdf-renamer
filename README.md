@@ -1,12 +1,12 @@
 # OSA PDF Renamer
 
-Local macOS tool for renaming selected patient PDFs from Finder.
+Local macOS tool for renaming selected PDFs from Finder.
 
-The tool reads the first page of each selected PDF, extracts the patient name
-and document type, and renames the file safely:
+The tool reads the first page of each selected PDF, extracts useful fields,
+and renames the file safely:
 
 ```text
-Document date - Patient Name - Document type.pdf
+Date - Person or subject - Document type.pdf
 ```
 
 Examples:
@@ -53,7 +53,8 @@ Opening `OSA PDF Renamer.app` directly from `/Applications` shows a small
 settings interface. The current UI can change which filename fields are used:
 
 - date
-- patient/name
+- sender
+- person / subject
 - document type
 
 The settings are saved per user in:
@@ -98,6 +99,7 @@ health_check = true
 
 [output]
 include_date = true
+include_sender = false
 include_name = true
 include_type = true
 
@@ -114,8 +116,10 @@ Useful options:
 - `vision_dpi`: scan rendering resolution, clamped to 150–300.
 - `notifications`: show macOS batch completion notifications.
 - `health_check`: verify dependencies before processing.
-- `include_date`, `include_name`, `include_type`: choose which extracted
-  fields appear in output filenames.
+- `include_date`, `include_sender`, `include_name`, `include_type`: choose
+  which extracted fields appear in output filenames. `include_name` currently
+  means the person or subject the file relates to, usually the patient in a
+  medical workflow.
 - `obsolete_models`: specific old Ollama models the app may remove after the
   current model is installed.
 

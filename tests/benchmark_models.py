@@ -82,15 +82,17 @@ def run_model(model: str, cases: list[dict], *, show_raw: bool = False) -> bool:
         timings.append(elapsed)
 
         name_ok = details.patient_name in case["patient_names"]
+        sender_ok = details.sender in case.get("senders", [details.sender])
         type_ok = details.document_type in case["document_types"]
         date_ok = details.document_date == case["document_date"]
-        ok = name_ok and type_ok and date_ok
+        ok = name_ok and sender_ok and type_ok and date_ok
         passed += int(ok)
 
         print(f"{'PASS' if ok else 'FAIL'}: {case['name']} ({elapsed:.1f}s)")
         print(
             "  "
             f"{details.document_date} - "
+            f"{details.sender} - "
             f"{details.patient_name} - "
             f"{details.document_type}"
         )

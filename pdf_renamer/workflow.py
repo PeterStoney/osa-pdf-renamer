@@ -13,6 +13,7 @@ def rename_pdf(
     dry_run: bool = False,
     debug_mode: str = "failures",
     include_date: bool = True,
+    include_sender: bool = False,
     include_name: bool = True,
     include_type: bool = True,
 ) -> RenameResult:
@@ -29,7 +30,9 @@ def rename_pdf(
         details.patient_name,
         details.document_type,
         details.document_date,
+        details.sender,
         include_date=include_date,
+        include_sender=include_sender,
         include_name=include_name,
         include_type=include_type,
     )
@@ -41,6 +44,7 @@ def rename_pdf(
 
     needs_review = (
         (include_name and details.patient_name == UNKNOWN)
+        or (include_sender and details.sender == UNKNOWN)
         or (include_type and details.document_type == UNKNOWN)
         or (include_date and details.document_date == UNKNOWN)
     )
@@ -62,12 +66,16 @@ def rename_pdf(
             + details.raw_model_response
             + "\n\n===== PARSED PATIENT NAME =====\n\n"
             + details.patient_name
+            + "\n\n===== SENDER =====\n\n"
+            + details.sender
             + "\n\n===== DOCUMENT TYPE =====\n\n"
             + details.document_type
             + "\n\n===== DOCUMENT DATE =====\n\n"
             + details.document_date
             + "\n\n===== NAME EVIDENCE =====\n\n"
             + details.name_evidence
+            + "\n\n===== SENDER EVIDENCE =====\n\n"
+            + details.sender_evidence
             + "\n\n===== TYPE EVIDENCE =====\n\n"
             + details.type_evidence
             + "\n\n===== DATE EVIDENCE =====\n\n"

@@ -8,6 +8,7 @@ update_check = true
 
 [output]
 include_date = true
+include_sender = false
 include_name = true
 include_type = true
 

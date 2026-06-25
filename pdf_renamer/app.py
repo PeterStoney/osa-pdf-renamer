@@ -8,6 +8,7 @@ from .config import (
     HEALTH_CHECK,
     INCLUDE_DATE,
     INCLUDE_NAME,
+    INCLUDE_SENDER,
     INCLUDE_TYPE,
     NOTIFICATIONS,
     OLLAMA_EXECUTABLE,
@@ -34,6 +35,7 @@ def main(
     notifications: bool = NOTIFICATIONS,
     update_check: bool = UPDATE_CHECK,
     include_date: bool = INCLUDE_DATE,
+    include_sender: bool = INCLUDE_SENDER,
     include_name: bool = INCLUDE_NAME,
     include_type: bool = INCLUDE_TYPE,
 ):
@@ -73,6 +75,7 @@ def main(
                     dry_run=dry_run,
                     debug_mode=debug_mode,
                     include_date=include_date,
+                    include_sender=include_sender,
                     include_name=include_name,
                     include_type=include_type,
                 )
