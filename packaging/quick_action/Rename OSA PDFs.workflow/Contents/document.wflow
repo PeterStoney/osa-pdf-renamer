@@ -87,71 +87,38 @@ if [[ ${#pdfs[@]} -eq 0 ]]; then
   exit 0
 fi
 
-progress_file="$(/usr/bin/mktemp -t osa_pdf_renamer_progress.XXXXXX)"
 output_file="$(/usr/bin/mktemp -t osa_pdf_renamer_output.XXXXXX)"
-status_file="$(/usr/bin/mktemp -t osa_pdf_renamer_status.XXXXXX)"
-trap 'rm -f "$progress_file" "$output_file" "$status_file"' EXIT
+trap 'rm -f "$output_file"' EXIT
 
-/usr/bin/osascript - "$APP" "$progress_file" "$output_file" "$status_file" "${pdfs[@]}" &lt;&lt;'APPLESCRIPT'
-on quoted(value)
-  return quoted form of value
-end quoted
-
+show_error() {
+  local message="$1"
+  [[ -n "$message" ]] || return 0
+  /usr/bin/osascript - "$message" &lt;&lt;'APPLESCRIPT'
 on run argv
-  set appPath to item 1 of argv
-  set progressFile to item 2 of argv
-  set outputFile to item 3 of argv
-  set statusFile to item 4 of argv
-  set pdfs to items 5 thru -1 of argv
-
-  set progress total steps to count of pdfs
-  set progress completed steps to 0
-  set progress description to "Renaming PDFs"
-  set progress additional description to "Starting"
-
-  set commandText to "OSA_PDF_RENAMER_PROGRESS_FILE=" &amp; quoted(progressFile) &amp; " " &amp; quoted(appPath)
-  repeat with pdfPath in pdfs
-    set commandText to commandText &amp; " " &amp; quoted(contents of pdfPath)
-  end repeat
-  set commandText to commandText &amp; " &gt; " &amp; quoted(outputFile) &amp; " 2&gt;&amp;1; echo $? &gt; " &amp; quoted(statusFile)
-
-  do shell script commandText &amp; " &amp;"
-
-  repeat
-    delay 0.5
-
-    try
-      set progressText to do shell script "/bin/cat " &amp; quoted(progressFile)
-      set oldDelimiters to AppleScript's text item delimiters
-      set AppleScript's text item delimiters to tab
-      set progressParts to text items of progressText
-      set AppleScript's text item delimiters to oldDelimiters
-
-      if (count of progressParts) &gt;= 2 then
-        set completedSteps to item 1 of progressParts as integer
-        set totalSteps to item 2 of progressParts as integer
-        if totalSteps &gt; 0 then set progress total steps to totalSteps
-        set progress completed steps to completedSteps
-      end if
-      if (count of progressParts) &gt;= 3 then
-        set progress additional description to item 3 of progressParts
-      end if
-    end try
-
-    set isDone to do shell script "if [ -f " &amp; quoted(statusFile) &amp; " ]; then echo yes; else echo no; fi"
-    if isDone is "yes" then exit repeat
-  end repeat
-
-  set progress completed steps to progress total steps
-  set statusCode to do shell script "/bin/cat " &amp; quoted(statusFile)
-  if statusCode is not "0" then
-    set outputText to do shell script "/bin/cat " &amp; quoted(outputFile)
-    if outputText is not "" then
-      display dialog outputText with title "OSA PDF Renamer" buttons {"OK"} default button "OK"
-    end if
-  end if
+  display dialog (item 1 of argv) with title "OSA PDF Renamer" buttons {"OK"} default button "OK"
 end run
 APPLESCRIPT
+}
+
+APP_BUNDLE="${APP%/Contents/MacOS/OSA PDF Renamer}"
+PROGRESS_RUNNER="$APP_BUNDLE/Contents/Resources/progress_runner"
+if [[ ! -x "$PROGRESS_RUNNER" ]]; then
+  PROGRESS_RUNNER="$APP_BUNDLE/Contents/MacOS/progress_runner"
+fi
+
+if [[ -x "$PROGRESS_RUNNER" ]]; then
+  "$PROGRESS_RUNNER" --progress-env OSA_PDF_RENAMER_PROGRESS_FILE "OSA PDF Renamer" "Renaming PDFs" "$APP" "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
+    output="$(/bin/cat "$output_file")"
+    show_error "$output"
+    exit 1
+  }
+else
+  "$APP" "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
+    output="$(/bin/cat "$output_file")"
+    show_error "$output"
+    exit 1
+  }
+fi
 
 </string>
 					<key>CheckedForUserDefaultShell</key>

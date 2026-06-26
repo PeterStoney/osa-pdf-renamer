@@ -95,6 +95,10 @@ and falls back to:
 The final `.pkg` installer should install the app and this workflow together,
 so coworkers do not need to move either item manually.
 
+When available, the Quick Action launches the app through the bundled
+`progress_runner` helper so users see a native OSA PDF Renamer progress window.
+Automator's own menu-bar status item may not show meaningful progress.
+
 macOS may not show a packaged Automator Quick Action immediately. On first use,
 the user may need to enable it once:
 

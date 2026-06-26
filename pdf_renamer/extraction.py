@@ -85,6 +85,8 @@ def valid_sender(sender: str) -> bool:
         return False
     if len(sender) < 3:
         return False
+    if len(sender.split()) == 1 and sender.isupper():
+        return False
     if parse_date_value(sender) != UNKNOWN:
         return False
     bad_words = {
@@ -1109,6 +1111,9 @@ def deterministic_document_details(text: str) -> DocumentDetails:
     document_type = detect_common_document_type(text)
     document_date, date_evidence = extract_document_date(text)
     sender, sender_evidence = extract_sender(text)
+    if document_type == "OP stickers":
+        sender = UNKNOWN
+        sender_evidence = ""
     patient_name = UNKNOWN
 
     if document_type == "Reg form":
@@ -1387,6 +1392,10 @@ def constrain_model_details(
         details.patient_name = deterministic_name
         details.name_evidence = deterministic.name_evidence
 
+    if common_document_type == "OP stickers":
+        details.sender = UNKNOWN
+        details.sender_evidence = ""
+
     if (
         details.sender != UNKNOWN
         and not sender_is_supported(details.sender, details.sender_evidence, text)
@@ -1461,6 +1470,8 @@ Rules:
   produced or sent the document. It is not the patient/person the file is about.
 - Prefer sender from letterhead, From/Sender/Provider/Practice/Supplier labels,
   or a clear top-of-page organisation name.
+- OP stickers / surgical implant sticker pages do not have a sender. Return
+  "unknown" for sender on those pages.
 - Do not use Referrer, Bill To, recipient, addressee, or Dear/To names as
   sender unless the OCR explicitly says they produced/sent the document.
 - sender_evidence must include the sender text itself.

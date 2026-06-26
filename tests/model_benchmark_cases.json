@@ -8,7 +8,8 @@
     "document_types": [
       "Clinical note",
       "Letter or note",
-      "Clinical Note"
+      "Clinical Note",
+      "clinical note"
     ],
     "document_date": "16-05-26",
     "senders": [

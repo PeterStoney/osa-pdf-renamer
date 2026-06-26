@@ -179,5 +179,12 @@
     "sender": "Example Supplies Pty Ltd",
     "document_type": "Tax Invoice",
     "document_date": "11-05-26"
+  },
+  {
+    "name": "OP stickers does not treat patient surname as sender",
+    "ocr_text": "===== MACOS VISION OCR (PRIMARY) =====\nKOUTOUKIDIS\nDOB: 01/01/1970\nGender M\nM/Care: 1234567890\nAdm: 12345\nStryker\nFemoral Stem\nFemoral Head\nAcetabular\nLot: ABC123\nRef: DEF456\nSterile\nImplant label",
+    "patient_name": "unknown",
+    "sender": "unknown",
+    "document_type": "OP stickers"
   }
 ]

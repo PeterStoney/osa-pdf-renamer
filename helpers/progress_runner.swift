@@ -7,6 +7,7 @@ final class ProgressRunner: NSObject {
     let descriptionText: String
     let command: String
     let arguments: [String]
+    let progressEnvName: String?
 
     let window = NSWindow(
         contentRect: NSRect(x: 0, y: 0, width: 680, height: 180),
@@ -19,12 +20,21 @@ final class ProgressRunner: NSObject {
     let progress = NSProgressIndicator()
     var process: Process?
     var output = ""
+    var progressFileURL: URL?
+    var progressTimer: Timer?
 
-    init(title: String, description: String, command: String, arguments: [String]) {
+    init(
+        title: String,
+        description: String,
+        command: String,
+        arguments: [String],
+        progressEnvName: String? = nil
+    ) {
         self.titleText = title
         self.descriptionText = description
         self.command = command
         self.arguments = arguments
+        self.progressEnvName = progressEnvName
     }
 
     func run() {
@@ -56,8 +66,15 @@ final class ProgressRunner: NSObject {
 
         progress.frame = NSRect(x: 28, y: 48, width: 624, height: 20)
         progress.style = .bar
-        progress.isIndeterminate = true
-        progress.startAnimation(nil)
+        if progressEnvName == nil {
+            progress.isIndeterminate = true
+            progress.startAnimation(nil)
+        } else {
+            progress.isIndeterminate = false
+            progress.minValue = 0
+            progress.maxValue = 1
+            progress.doubleValue = 0
+        }
         content.addSubview(progress)
     }
 
@@ -65,6 +82,15 @@ final class ProgressRunner: NSObject {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: command)
         task.arguments = arguments
+        if let progressEnvName {
+            let fileURL = URL(fileURLWithPath: NSTemporaryDirectory())
+                .appendingPathComponent("osa_pdf_renamer_progress_\(UUID().uuidString)")
+            progressFileURL = fileURL
+            var environment = ProcessInfo.processInfo.environment
+            environment[progressEnvName] = fileURL.path
+            task.environment = environment
+            startProgressPolling(fileURL)
+        }
 
         let pipe = Pipe()
         task.standardOutput = pipe
@@ -86,6 +112,12 @@ final class ProgressRunner: NSObject {
         task.terminationHandler = { task in
             pipe.fileHandleForReading.readabilityHandler = nil
             DispatchQueue.main.async {
+                self.progressTimer?.invalidate()
+                self.progressTimer = nil
+                self.removeProgressFile()
+                if self.progressEnvName != nil {
+                    self.progress.doubleValue = self.progress.maxValue
+                }
                 Darwin.exit(task.terminationStatus)
             }
         }
@@ -98,6 +130,52 @@ final class ProgressRunner: NSObject {
                 NSApp.terminate(1)
             }
         }
+    }
+
+    func startProgressPolling(_ fileURL: URL) {
+        progressTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.readProgress(fileURL)
+        }
+    }
+
+    func readProgress(_ fileURL: URL) {
+        guard let text = try? String(contentsOf: fileURL, encoding: .utf8) else {
+            return
+        }
+
+        let parts = text
+            .split(separator: "\t", maxSplits: 2, omittingEmptySubsequences: false)
+            .map(String.init)
+        guard parts.count >= 2 else {
+            return
+        }
+
+        let completed = Double(parts[0].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        let total = Double(parts[1].trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        let message = parts.count >= 3
+            ? parts[2].trimmingCharacters(in: .whitespacesAndNewlines)
+            : ""
+
+        if total > 0 {
+            progress.maxValue = total
+            progress.doubleValue = min(max(completed, 0), total)
+            let wholeCompleted = Int(min(max(completed, 0), total))
+            let wholeTotal = Int(total)
+            if message.isEmpty {
+                detailLabel.stringValue = "\(wholeCompleted) of \(wholeTotal)"
+            } else {
+                detailLabel.stringValue = "\(wholeCompleted) of \(wholeTotal): \(message)"
+            }
+        } else if !message.isEmpty {
+            detailLabel.stringValue = message
+        }
+    }
+
+    func removeProgressFile() {
+        guard let progressFileURL else {
+            return
+        }
+        try? FileManager.default.removeItem(at: progressFileURL)
     }
 
     static func cleanDisplayLine(_ text: String) -> String? {
@@ -132,21 +210,31 @@ final class ProgressRunner: NSObject {
 }
 
 func usage() -> Never {
-    fputs("Usage: progress_runner <title> <description> <command> [args...]\n", stderr)
+    fputs("Usage: progress_runner [--progress-env ENV_NAME] <title> <description> <command> [args...]\n", stderr)
     exit(2)
 }
 
-let args = CommandLine.arguments
-if args.count < 4 {
+var args = Array(CommandLine.arguments.dropFirst())
+var progressEnvName: String?
+if args.first == "--progress-env" {
+    guard args.count >= 2 else {
+        usage()
+    }
+    progressEnvName = args[1]
+    args.removeFirst(2)
+}
+
+if args.count < 3 {
     usage()
 }
 
 let app = NSApplication.shared
 let runner = ProgressRunner(
-    title: args[1],
-    description: args[2],
-    command: args[3],
-    arguments: Array(args.dropFirst(4))
+    title: args[0],
+    description: args[1],
+    command: args[2],
+    arguments: Array(args.dropFirst(3)),
+    progressEnvName: progressEnvName
 )
 runner.run()
 app.run()

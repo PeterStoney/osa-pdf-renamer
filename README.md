@@ -43,11 +43,13 @@ The normal workflow is through a Finder Automator Quick Action:
    - Tick `Rename OSA PDFs`.
 3. Select one or more PDFs in Finder.
 4. Run `Quick Actions > Rename OSA PDFs`.
-5. Wait for the progress indicator and completion popup.
+5. Wait for the OSA PDF Renamer progress window and completion popup.
 6. If files need review, choose `Review unknowns` to correct them immediately.
 
 macOS commonly requires the one-time `Customize…` step for Automator Quick
 Actions installed by a package rather than created manually in Automator.
+Automator may still show its own small “Running Shell Script” status item, but
+the app's native progress window is the reliable progress indicator.
 
 Opening `OSA PDF Renamer.app` directly from `/Applications` shows a small
 settings interface. The current UI can change which filename fields are used:
