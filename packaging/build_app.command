@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR=${0:a:h}
 PROJECT_DIR=${SCRIPT_DIR:h}
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
 CONDA_ENV_PYTHON="/opt/miniconda3/envs/osa-pdf-renamer-build/bin/python"
 PYTHON="$CONDA_ENV_PYTHON"
 

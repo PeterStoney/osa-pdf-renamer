@@ -34,7 +34,6 @@ def executable(path: Path) -> bool:
 def main() -> int:
     ok = True
     launcher = MACOS_DIR / "OSA PDF Renamer"
-
     ok &= check(APP_PATH.is_dir(), f"app bundle exists: {APP_PATH}")
     ok &= check(executable(launcher), "app launcher is executable")
 

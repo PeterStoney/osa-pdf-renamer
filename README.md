@@ -52,12 +52,15 @@ Automator may still show its own small “Running Shell Script” status item, b
 the app's native progress window is the reliable progress indicator.
 
 Opening `OSA PDF Renamer.app` directly from `/Applications` shows a small
-settings interface. The current UI can change which filename fields are used:
+interface. The app UI can choose PDFs for renaming and change which filename
+fields are used:
 
 - date
 - sender
 - person / subject
 - document type
+
+The app uses the same renaming engine as the Finder Quick Action.
 
 The settings are saved per user in:
 

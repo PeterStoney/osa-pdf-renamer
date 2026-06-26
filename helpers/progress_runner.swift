@@ -118,6 +118,10 @@ final class ProgressRunner: NSObject {
                 if self.progressEnvName != nil {
                     self.progress.doubleValue = self.progress.maxValue
                 }
+                if task.terminationStatus != 0, !self.output.isEmpty {
+                    let data = Data(self.output.utf8)
+                    FileHandle.standardError.write(data)
+                }
                 Darwin.exit(task.terminationStatus)
             }
         }

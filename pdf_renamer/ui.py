@@ -1,17 +1,20 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 from .config import (
     APP_VERSION,
     CONFIG_PATH,
-    USER_CONFIG_PATH,
     OLLAMA_MODEL,
+    PROGRESS_RUNNER_EXECUTABLE,
+    USER_CONFIG_PATH,
     deep_merge,
     effective_config,
     load_config,
     write_user_config,
 )
+from .progress import PROGRESS_FILE_ENV
 
 
 OUTPUT_OPTIONS = {
@@ -155,10 +158,70 @@ def show_about() -> None:
     )
 
 
+def choose_pdfs() -> list[Path]:
+    script = (
+        'set pickedFiles to choose file '
+        'with prompt "Choose PDF files to rename:" '
+        'of type {"com.adobe.pdf", "com.apple.pdf", "PDF"} '
+        "with multiple selections allowed\n"
+        "set outputPaths to {}\n"
+        "repeat with pickedFile in pickedFiles\n"
+        "  set end of outputPaths to POSIX path of pickedFile\n"
+        "end repeat\n"
+        'set AppleScript\'s text item delimiters to "\\n"\n'
+        "return outputPaths as text"
+    )
+    output = run_osascript(script)
+    if not output:
+        return []
+
+    paths = []
+    for line in output.splitlines():
+        path = Path(line.strip())
+        if path.is_file() and path.suffix.lower() == ".pdf":
+            paths.append(path)
+    return paths
+
+
+def rename_pdfs_from_ui(pdf_paths: list[Path]) -> int:
+    if not pdf_paths:
+        return 0
+
+    if getattr(sys, "frozen", False) and PROGRESS_RUNNER_EXECUTABLE.is_file():
+        command = [
+            str(PROGRESS_RUNNER_EXECUTABLE),
+            "--progress-env",
+            PROGRESS_FILE_ENV,
+            "OSA PDF Renamer",
+            "Renaming PDFs",
+            sys.executable,
+            *[str(path) for path in pdf_paths],
+        ]
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            message = (
+                result.stderr.strip()
+                or result.stdout.strip()
+                or "The rename operation did not complete."
+            )
+            dialog("OSA PDF Renamer", message)
+        return result.returncode
+
+    from .app import main as run_main
+
+    summary = run_main([str(path) for path in pdf_paths])
+    return 1 if summary.errors else 0
+
+
 def show_app_ui() -> int:
     if sys.platform != "darwin":
         print(
-            "OSA PDF Renamer settings UI is currently available on macOS only."
+            "OSA PDF Renamer app UI is currently available on macOS only."
         )
         return 0
 
@@ -169,16 +232,17 @@ def show_app_ui() -> int:
                 f"Version {APP_VERSION}\n\n"
                 "Current filename format:\n"
                 f"{current_format_preview()}\n\n"
-                "To rename PDFs, select them in Finder and use the "
-                "Rename OSA PDFs Quick Action."
+                "Choose PDFs here, or use the Finder Quick Action."
             ),
-            buttons=("Close", "About", "Filename Settings"),
-            default_button="Filename Settings",
+            buttons=("Close", "Settings", "Choose PDFs…"),
+            default_button="Choose PDFs…",
         )
-        if button == "Filename Settings":
-            show_settings()
+        if button == "Choose PDFs…":
+            pdf_paths = choose_pdfs()
+            if pdf_paths:
+                rename_pdfs_from_ui(pdf_paths)
             continue
-        if button == "About":
-            show_about()
+        if button == "Settings":
+            show_settings()
             continue
         return 0
