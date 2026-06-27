@@ -93,24 +93,28 @@ def default_review_values(
 ) -> list[str]:
     values = []
     if include_date:
-        values.append(details.document_date)
+        values.append(review_display_value(details.document_date))
     if include_sender:
-        values.append(details.sender)
+        values.append(review_display_value(details.sender))
     if include_recipient:
-        values.append(details.recipient)
+        values.append(review_display_value(details.recipient))
     if include_name:
-        values.append(details.patient_name)
+        values.append(review_display_value(details.patient_name))
     if include_reference:
-        values.append(details.reference)
+        values.append(review_display_value(details.reference))
     if include_type:
-        values.append(details.document_type)
+        values.append(review_display_value(details.document_type))
     if include_amount:
-        values.append(details.amount)
+        values.append(review_display_value(details.amount))
     if include_location:
-        values.append(details.location)
+        values.append(review_display_value(details.location))
     if include_status:
-        values.append(details.status)
+        values.append(review_display_value(details.status))
     return values
+
+
+def review_display_value(value: str) -> str:
+    return "" if value.strip().lower() == UNKNOWN else value
 
 
 def correction_from_values(
@@ -179,8 +183,12 @@ def correction_from_values(
     return corrected
 
 
+def contains_unresolved_value(values: list[str]) -> bool:
+    return any(value_or_unknown(value).lower() == UNKNOWN for value in values)
+
+
 def contains_unknown_value(values: list[str]) -> bool:
-    return any(value.strip().lower() == UNKNOWN for value in values)
+    return contains_unresolved_value(values)
 
 
 def review_field_pairs(
@@ -220,6 +228,14 @@ def review_field_pairs(
         include_status=include_status,
     )
     return list(zip(labels, values, strict=True))
+
+
+def missing_field_labels(fields: list[tuple[str, str]]) -> list[str]:
+    return [
+        label
+        for label, value in fields
+        if value_or_unknown(value).lower() == UNKNOWN
+    ]
 
 
 def field_dialog_script(
@@ -307,6 +323,8 @@ def open_review_preview(item: RenameResult) -> None:
 def prompt_for_correction(
     item: RenameResult,
     *,
+    position: int = 1,
+    total: int = 1,
     include_date: bool,
     include_sender: bool,
     include_name: bool,
@@ -333,6 +351,8 @@ def prompt_for_correction(
         return None
 
     filename = item.final_path.name if item.final_path else "Unknown.pdf"
+    missing = missing_field_labels(fields)
+    missing_text = ", ".join(missing) if missing else "None"
     detected = (
         "Detected fields:\n"
         f"Date: {item.details.document_date}\n"
@@ -346,8 +366,11 @@ def prompt_for_correction(
         f"Status: {item.details.status}"
     )
     message = (
-        f"{filename} needs review.\n\n"
-        "Edit the enabled filename fields below."
+        f"Review {position} of {total}\n\n"
+        f"Current filename: {filename}\n"
+        f"Missing fields: {missing_text}\n\n"
+        "Edit the enabled filename fields below. Blank fields must be filled "
+        "before saving."
     )
 
     script = field_dialog_script(
@@ -368,7 +391,7 @@ def prompt_for_correction(
     values = [part.strip() for part in answer.splitlines()]
     if len(values) != len(fields):
         return None
-    if contains_unknown_value(values):
+    if contains_unresolved_value(values):
         return None
     return correction_from_values(
         item.details,
@@ -450,10 +473,13 @@ def review_unknowns(
         return 0
 
     corrected_count = 0
-    for item in summary.review_items:
+    total = len(summary.review_items)
+    for index, item in enumerate(summary.review_items, start=1):
         open_review_preview(item)
         corrected = prompt_for_correction(
             item,
+            position=index,
+            total=total,
             include_date=include_date,
             include_sender=include_sender,
             include_name=include_name,
