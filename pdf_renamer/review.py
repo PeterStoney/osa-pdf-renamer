@@ -20,6 +20,8 @@ def run_osascript(script: str) -> str:
         check=False,
     )
     if result.returncode != 0:
+        if result.stderr.strip():
+            print(result.stderr.strip(), file=sys.stderr)
         return ""
     return result.stdout.strip()
 
@@ -296,7 +298,6 @@ def field_dialog_script(
         + "\n".join(field_rows)
         + "\n"
         'alert\'s setAccessoryView:accessoryView\n'
-        'alert\'s window()\'s setInitialFirstResponder:field1\n'
         'set response to alert\'s runModal()\n'
         'if response = 1000 then\n'
         f'  return "Save" & linefeed & {values_expression}\n'
