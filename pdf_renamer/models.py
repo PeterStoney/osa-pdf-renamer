@@ -8,13 +8,23 @@ from .config import UNKNOWN
 class DocumentDetails:
     patient_name: str = UNKNOWN
     sender: str = UNKNOWN
+    recipient: str = UNKNOWN
     document_type: str = UNKNOWN
     document_date: str = UNKNOWN
+    reference: str = UNKNOWN
+    amount: str = UNKNOWN
+    location: str = UNKNOWN
+    status: str = UNKNOWN
     raw_model_response: str = ""
     name_evidence: str = ""
     sender_evidence: str = ""
+    recipient_evidence: str = ""
     type_evidence: str = ""
     date_evidence: str = ""
+    reference_evidence: str = ""
+    amount_evidence: str = ""
+    location_evidence: str = ""
+    status_evidence: str = ""
     confidence: float = 0.0
 
 

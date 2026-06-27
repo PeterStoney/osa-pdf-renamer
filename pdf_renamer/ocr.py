@@ -8,6 +8,7 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 from .config import (
+    PDFINFO_EXECUTABLE,
     PDFTOPPM_EXECUTABLE,
     PDFTOTEXT_EXECUTABLE,
     VISION_DPI,
@@ -16,17 +17,159 @@ from .config import (
 )
 from .models import VisionLine, VisionOCR
 
+FIELD_LABEL_PATTERNS = {
+    "name": (
+        r"(?:patient|client|customer|member|employee)?\s*name",
+        r"patient",
+        r"person",
+        r"subject",
+        r"first\s*name",
+        r"given\s*name",
+        r"surname",
+        r"last\s*name",
+        r"family\s*name",
+        r"re",
+    ),
+    "date": (
+        r"date",
+        r"document\s*date",
+        r"service\s*date",
+        r"study\s*date",
+        r"examination\s*date",
+        r"procedure\s*date",
+        r"operation\s*date",
+        r"appointment\s*date",
+        r"requested",
+        r"collected",
+    ),
+    "sender": (
+        r"sender",
+        r"from",
+        r"provider",
+        r"practice",
+        r"clinic",
+        r"organisation",
+        r"organization",
+        r"company",
+        r"supplier",
+        r"facility",
+    ),
+    "recipient": (
+        r"recipient",
+        r"to",
+        r"bill\s*to",
+        r"ship\s*to",
+        r"attention",
+        r"attn",
+        r"addressee",
+        r"customer",
+        r"client",
+    ),
+    "type": (
+        r"document\s*type",
+        r"report\s*type",
+        r"examination",
+        r"study",
+        r"procedure",
+        r"operation",
+        r"test",
+        r"request",
+        r"report",
+        r"title",
+    ),
+    "reference": (
+        r"reference",
+        r"ref",
+        r"number",
+        r"no",
+        r"invoice\s*(?:number|no)",
+        r"claim\s*(?:number|no)",
+        r"policy\s*(?:number|no)",
+        r"case\s*(?:number|no)",
+        r"matter\s*(?:number|no)",
+        r"order\s*(?:number|no)",
+        r"purchase\s*order",
+        r"po\s*(?:number|no)",
+        r"account\s*(?:number|no)",
+        r"booking\s*reference",
+        r"application\s*(?:number|no)",
+    ),
+    "amount": (
+        r"amount",
+        r"total",
+        r"total\s*due",
+        r"balance",
+        r"balance\s*due",
+        r"invoice\s*total",
+        r"subtotal",
+        r"paid",
+    ),
+    "location": (
+        r"location",
+        r"address",
+        r"site",
+        r"site\s*address",
+        r"property",
+        r"property\s*address",
+        r"destination",
+        r"branch",
+        r"facility",
+        r"workplace",
+    ),
+    "status": (
+        r"status",
+        r"state",
+        r"outcome",
+        r"result",
+        r"approval\s*status",
+        r"payment\s*status",
+    ),
+}
 
-def extract_embedded_pdf_text(pdf_path: Path) -> str:
-    """Read an existing first-page text layer without rendering or OCR."""
+
+def pdf_page_count(pdf_path: Path) -> int:
+    try:
+        result = subprocess.run(
+            [PDFINFO_EXECUTABLE, str(pdf_path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode != 0:
+            return 1
+        match = re.search(r"^Pages:\s*(\d+)", result.stdout, re.MULTILINE)
+        return max(1, int(match.group(1))) if match else 1
+    except Exception:
+        return 1
+
+
+def recovery_page_numbers(pdf_path: Path) -> list[int]:
+    """Prefer pages likely to contain summary identifiers without scanning all pages."""
+    total_pages = pdf_page_count(pdf_path)
+    pages = [1]
+    if total_pages > 1:
+        pages.append(total_pages)
+    if total_pages > 2:
+        pages.append(2)
+
+    unique_pages = []
+    for page in pages:
+        if page not in unique_pages:
+            unique_pages.append(page)
+    return unique_pages
+
+
+def extract_embedded_pdf_text(pdf_path: Path, page_number: int = 1) -> str:
+    """Read an existing page text layer without rendering or OCR."""
     try:
         result = subprocess.run(
             [
                 PDFTOTEXT_EXECUTABLE,
                 "-f",
-                "1",
+                str(page_number),
                 "-l",
-                "1",
+                str(page_number),
                 "-layout",
                 str(pdf_path),
                 "-",
@@ -46,7 +189,7 @@ def has_useful_pdf_text(text: str) -> bool:
     return len(text) >= 200 and len(words) >= 25
 
 
-def render_first_page(pdf_path: Path, dpi: int = 225):
+def render_page(pdf_path: Path, page_number: int = 1, dpi: int = 225):
     poppler_path = None
     pdftoppm_path = Path(PDFTOPPM_EXECUTABLE)
     if pdftoppm_path.is_file():
@@ -54,12 +197,16 @@ def render_first_page(pdf_path: Path, dpi: int = 225):
 
     pages = convert_from_path(
         str(pdf_path),
-        first_page=1,
-        last_page=1,
+        first_page=page_number,
+        last_page=page_number,
         dpi=dpi,
         poppler_path=poppler_path,
     )
     return pages[0] if pages else None
+
+
+def render_first_page(pdf_path: Path, dpi: int = 225):
+    return render_page(pdf_path, page_number=1, dpi=dpi)
 
 
 def extract_structured_macos_vision(
@@ -71,7 +218,7 @@ def extract_structured_macos_vision(
         return VisionOCR()
 
     try:
-        page = page or render_first_page(pdf_path)
+        page = page or render_page(pdf_path, page_number=1)
         if page is None:
             return VisionOCR()
 
@@ -174,46 +321,242 @@ def structured_vision_summary(lines) -> str:
     return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
-def extract_targeted_osa_name_text(pdf_path: Path, page, vision_text: str) -> str:
-    normalized = re.sub(r"\s+", " ", vision_text).lower()
-    if not (
-        "osa unit trust" in normalized
-        and "personal details" in normalized
-        and (
-            re.search(r"(?im)^\s*Surname\s*:\s*$", vision_text)
-            or re.search(r"(?im)^\s*First Name\s*:\s*$", vision_text)
-        )
-    ):
-        return ""
+def line_matches_field_label(line_text: str, field: str) -> bool:
+    normalized = re.sub(r"[^A-Za-z0-9]+", " ", line_text).strip().lower()
+    if not normalized or len(normalized) > 45:
+        return False
 
-    width, height = page.size
-    crops = {
-        "Surname": (0.12, 0.15, 0.39, 0.185),
-        "First Name": (0.47, 0.15, 0.74, 0.185),
-    }
-    results = []
+    for pattern in FIELD_LABEL_PATTERNS.get(field, ()):
+        if re.fullmatch(pattern, normalized, flags=re.IGNORECASE):
+            return True
+        if re.fullmatch(pattern + r"\s*", normalized, flags=re.IGNORECASE):
+            return True
+        if re.fullmatch(pattern + r"\s*(?:no|number)?", normalized, flags=re.IGNORECASE):
+            return True
+    return False
 
-    for label, (left, top, right, bottom) in crops.items():
-        box = (
-            int(width * left),
-            int(height * top),
-            int(width * right),
-            int(height * bottom),
-        )
-        crop = page.crop(box)
-        crop = crop.resize((crop.width * 4, crop.height * 4))
-        ocr = extract_structured_macos_vision(pdf_path, page=crop)
-        if ocr.lines:
-            best_line = max(
-                ocr.lines,
-                key=lambda line: (
-                    line.confidence,
-                    line.width * line.height,
+
+def field_crop_candidates(lines, target_fields: set[str]) -> list[tuple[str, tuple[float, float, float, float]]]:
+    """Return normalized crop boxes near likely labels for unresolved fields."""
+    candidates = []
+    seen = set()
+
+    for line in lines:
+        text = str(getattr(line, "text", "")).strip()
+        if not text:
+            continue
+
+        for field in target_fields:
+            if not line_matches_field_label(text.rstrip(":."), field):
+                continue
+
+            x = max(0.0, min(float(getattr(line, "x", 0.0)), 1.0))
+            y = max(0.0, min(float(getattr(line, "y", 0.0)), 1.0))
+            width = max(0.0, min(float(getattr(line, "width", 0.0)), 1.0))
+            height = max(0.012, min(float(getattr(line, "height", 0.025)), 0.12))
+            label = text.rstrip(":.").strip().title()
+
+            boxes = (
+                (
+                    max(0.0, x + width + 0.006),
+                    max(0.0, y - height * 0.6),
+                    0.98,
+                    min(1.0, y + height * 2.2),
+                ),
+                (
+                    max(0.0, x - 0.015),
+                    min(1.0, y + height * 0.8),
+                    min(0.98, max(x + width + 0.35, x + 0.55)),
+                    min(1.0, y + height * 4.2),
                 ),
             )
-            results.append(f"{label}: {best_line.text}")
+            for box in boxes:
+                left, top, right, bottom = box
+                if right - left < 0.05 or bottom - top < 0.008:
+                    continue
+                key = (
+                    field,
+                    round(left, 3),
+                    round(top, 3),
+                    round(right, 3),
+                    round(bottom, 3),
+                )
+                if key in seen:
+                    continue
+                seen.add(key)
+                candidates.append((f"{field} near {label}", box))
+
+    return candidates[:12]
+
+
+def ocr_crop_text(
+    pdf_path: Path,
+    page,
+    label: str,
+    box: tuple[float, float, float, float],
+) -> str:
+    width, height = page.size
+    left, top, right, bottom = box
+    pixel_box = (
+        int(width * left),
+        int(height * top),
+        int(width * right),
+        int(height * bottom),
+    )
+    crop = page.crop(pixel_box)
+    if crop.width <= 0 or crop.height <= 0:
+        return ""
+
+    crop = crop.resize((crop.width * 4, crop.height * 4))
+    ocr = extract_structured_macos_vision(pdf_path, page=crop)
+    lines = [
+        line.text.strip()
+        for line in ocr.lines
+        if line.text.strip()
+    ]
+    if not lines:
+        return ""
+    return f"{label}: " + " ".join(lines)
+
+
+def extract_targeted_field_text(
+    pdf_path: Path,
+    target_fields: set[str],
+    *,
+    page_numbers: list[int] | None = None,
+) -> str:
+    """Retry OCR around likely labels for unresolved filename fields."""
+    if not target_fields:
+        return ""
+
+    results = []
+    seen_text = set()
+    for page_number in page_numbers or [1]:
+        try:
+            page = render_page(pdf_path, page_number=page_number, dpi=VISION_DPI)
+        except Exception as error:
+            print(
+                f"Targeted OCR rendering failed for {pdf_path.name} "
+                f"page {page_number}: {error}"
+            )
+            continue
+
+        if page is None:
+            continue
+
+        vision = extract_structured_macos_vision(pdf_path, page=page)
+        candidates = field_crop_candidates(vision.lines, target_fields)
+        for label, box in candidates:
+            crop_text = ocr_crop_text(
+                pdf_path,
+                page,
+                f"page {page_number} {label}",
+                box,
+            )
+            normalized = re.sub(r"\s+", " ", crop_text).strip().lower()
+            if not normalized or normalized in seen_text:
+                continue
+            seen_text.add(normalized)
+            results.append(crop_text)
 
     return "\n".join(results)
+
+
+def enhance_text_with_targeted_field_ocr(
+    pdf_path: Path,
+    text: str,
+    target_fields: set[str],
+) -> str:
+    targeted_text = extract_targeted_field_text(
+        pdf_path,
+        target_fields,
+        page_numbers=recovery_page_numbers(pdf_path),
+    )
+    if not targeted_text:
+        return text
+
+    return (
+        text
+        + "\n\n===== TARGETED FIELD OCR =====\n\n"
+        + targeted_text[:3000]
+    )
+
+
+def extract_single_page_document_text(
+    pdf_path: Path,
+    *,
+    page_number: int,
+    label: str,
+) -> str:
+    embedded_text = extract_embedded_pdf_text(pdf_path, page_number=page_number)
+    sections = []
+    if embedded_text:
+        sections.append(
+            f"===== EMBEDDED PDF TEXT ({label}) =====\n\n"
+            + embedded_text[:5000]
+        )
+
+    try:
+        page = render_page(pdf_path, page_number=page_number, dpi=VISION_DPI)
+    except Exception as error:
+        print(
+            f"PDF rendering failed for {pdf_path.name} page {page_number}: {error}"
+        )
+        return "\n\n".join(sections)
+
+    if page is None:
+        return "\n\n".join(sections)
+
+    vision = extract_structured_macos_vision(pdf_path, page=page)
+    if vision.text:
+        sections.append(
+            f"===== MACOS VISION OCR ({label}) =====\n\n"
+            + vision.text[:4000]
+        )
+
+    summary = structured_vision_summary(vision.lines)
+    if summary:
+        sections.append(
+            f"===== STRUCTURED VISION OCR LINES ({label}) =====\n\n"
+            + summary
+        )
+
+    return "\n\n".join(sections)
+
+
+def enhance_text_with_recovery_pages(
+    pdf_path: Path,
+    text: str,
+    target_fields: set[str],
+) -> str:
+    if not target_fields:
+        return text
+
+    additions = []
+    existing_normalized = re.sub(r"\s+", " ", text).strip().lower()
+    total_pages = pdf_page_count(pdf_path)
+    for page_number in recovery_page_numbers(pdf_path):
+        if page_number == 1:
+            continue
+        label = "LAST PAGE" if page_number == total_pages else f"PAGE {page_number}"
+        page_text = extract_single_page_document_text(
+            pdf_path,
+            page_number=page_number,
+            label=label,
+        )
+        normalized = re.sub(r"\s+", " ", page_text).strip().lower()
+        if not normalized or normalized in existing_normalized:
+            continue
+        additions.append(page_text)
+
+    if not additions:
+        return text
+
+    return (
+        text
+        + "\n\n===== RECOVERY PAGE OCR =====\n\n"
+        + "\n\n".join(additions)[:8000]
+    )
 
 
 def extract_document_text(pdf_path: Path) -> str:
@@ -251,16 +594,6 @@ def extract_document_text(pdf_path: Path) -> str:
             "===== MACOS VISION OCR (PRIMARY) =====\n\n"
             + vision.text[:5000]
         )
-        targeted_name_text = extract_targeted_osa_name_text(
-            pdf_path,
-            page,
-            vision.text,
-        )
-        if targeted_name_text:
-            sections.append(
-                "===== TARGETED OSA NAME OCR =====\n\n"
-                + targeted_name_text
-            )
 
     summary = structured_vision_summary(vision.lines)
     if summary:

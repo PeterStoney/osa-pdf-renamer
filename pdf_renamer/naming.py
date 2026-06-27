@@ -10,11 +10,21 @@ def build_filename(
     document_type: str,
     document_date: str = UNKNOWN,
     sender: str = UNKNOWN,
+    recipient: str = UNKNOWN,
+    reference: str = UNKNOWN,
+    amount: str = UNKNOWN,
+    location: str = UNKNOWN,
+    status: str = UNKNOWN,
     *,
     include_date: bool = True,
     include_sender: bool = False,
     include_name: bool = True,
     include_type: bool = True,
+    include_recipient: bool = False,
+    include_reference: bool = False,
+    include_amount: bool = False,
+    include_location: bool = False,
+    include_status: bool = False,
 ) -> str:
     if document_type == UNKNOWN:
         document_type = "Unknown"
@@ -23,10 +33,20 @@ def build_filename(
         parts.append(document_date)
     if include_sender and sender != UNKNOWN:
         parts.append(sender)
+    if include_recipient and recipient != UNKNOWN:
+        parts.append(recipient)
+    if include_location and location != UNKNOWN:
+        parts.append(location)
     if include_name:
         parts.append(patient_name)
+    if include_reference and reference != UNKNOWN:
+        parts.append(reference)
     if include_type:
         parts.append(document_type)
+    if include_amount and amount != UNKNOWN:
+        parts.append(amount)
+    if include_status and status != UNKNOWN:
+        parts.append(status)
     return " - ".join(parts) if parts else "Unknown"
 
 

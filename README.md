@@ -6,7 +6,7 @@ The tool reads the first page of each selected PDF, extracts useful fields,
 and renames the file safely:
 
 ```text
-Date - Person or subject - Document type.pdf
+Date - Subject - Document type.pdf
 ```
 
 Examples:
@@ -52,13 +52,22 @@ Automator may still show its own small “Running Shell Script” status item, b
 the app's native progress window is the reliable progress indicator.
 
 Opening `OSA PDF Renamer.app` directly from `/Applications` shows a small
-interface. The app UI can choose PDFs for renaming and change which filename
-fields are used:
+interface with a PDF drop zone. Drop PDFs into the window or choose them with
+the file picker; either way, the app renames the original files in place.
+The app UI can also change which filename fields are used. It offers generic
+presets such as General documents, Correspondence, Finance, Legal / case,
+Property / site, Logistics, and Full detail. These presets are built from
+industry-neutral fields:
 
 - date
 - sender
-- person / subject
+- recipient
+- subject
+- reference
 - document type
+- amount
+- location
+- status
 
 The app uses the same renaming engine as the Finder Quick Action.
 
@@ -84,8 +93,10 @@ Needs review: 2
 Errors: 0
 ```
 
-Choose `Review unknowns` to correct each file. The correction prompt shows the
-fields detected from OCR/model extraction before asking for edits. You can:
+Choose `Review unknowns` to correct each file. The app opens the current PDF in
+Preview, then the correction prompt shows the fields detected from OCR/model
+extraction before asking for edits. The prompt shows a separate input for each
+enabled filename field. You can:
 
 - choose `Save` to rename and save a correction;
 - choose `Skip` to leave that file as-is;
@@ -139,6 +150,11 @@ include_date = true
 include_sender = false
 include_name = true
 include_type = true
+include_recipient = false
+include_reference = false
+include_amount = false
+include_location = false
+include_status = false
 
 [ollama]
 model = "qwen2.5:3b"
@@ -153,10 +169,12 @@ Useful options:
 - `vision_dpi`: scan rendering resolution, clamped to 150–300.
 - `notifications`: show macOS batch completion notifications.
 - `health_check`: verify dependencies before processing.
-- `include_date`, `include_sender`, `include_name`, `include_type`: choose
-  which extracted fields appear in output filenames. `include_name` currently
-  means the person or subject the file relates to, usually the patient in a
-  medical workflow.
+- `include_date`, `include_sender`, `include_recipient`, `include_name`,
+  `include_reference`, `include_type`, `include_amount`, `include_location`,
+  `include_status`: choose which extracted fields appear in output filenames.
+  `include_name` is the internal compatibility name for the generic Subject
+  field: the person, organisation, property, claim, case, project, or other
+  thing the document is about.
 - `obsolete_models`: specific old Ollama models the app may remove after the
   current model is installed.
 
@@ -169,7 +187,8 @@ document.
 Double-clickable scripts live in `scripts/`:
 
 - `health_check.command`: checks local dependencies and the Ollama model.
-- `run_regression.command`: runs the privacy-safe synthetic regression suite.
+- `run_regression.command`: runs the privacy-safe synthetic regression suite
+  against the configured local Ollama model.
 - `build_vision_helper.command`: rebuilds the Swift Vision OCR helper.
 
 These scripts are intended for setup/support rather than everyday use.
@@ -226,8 +245,10 @@ Run:
 /opt/miniconda3/bin/python tests/run_regression.py
 ```
 
-The regression suite uses synthetic OCR text. Do not add real patient names,
-real OCR output, PDFs, or debug files to the test manifest.
+The regression suite uses synthetic OCR text and requires the configured local
+Ollama model by default. Use `--allow-no-model` only for offline smoke checks;
+do not treat that as a full regression run. Do not add real patient names, real
+OCR output, PDFs, or debug files to the test manifest.
 
 ## Project structure
 

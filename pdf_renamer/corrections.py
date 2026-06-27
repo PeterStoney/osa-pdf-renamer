@@ -18,8 +18,14 @@ def details_payload(details: DocumentDetails) -> dict:
     return {
         "date": details.document_date,
         "sender": details.sender,
+        "recipient": details.recipient,
+        "subject": details.patient_name,
         "person_subject": details.patient_name,
+        "reference": details.reference,
         "document_type": details.document_type,
+        "amount": details.amount,
+        "location": details.location,
+        "status": details.status,
     }
 
 

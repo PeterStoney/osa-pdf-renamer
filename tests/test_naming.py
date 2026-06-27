@@ -89,6 +89,30 @@ def main() -> int:
     expect(
         build_filename(
             "John Smith",
+            "Tax Invoice",
+            "16-05-26",
+            "Example Supplies",
+            "Example Recipient",
+            "INV-1234",
+            "$245.00",
+            "12 Smith Street",
+            "Paid",
+            include_sender=True,
+            include_recipient=True,
+            include_reference=True,
+            include_amount=True,
+            include_location=True,
+            include_status=True,
+        ),
+        (
+            "16-05-26 - Example Supplies - Example Recipient - "
+            "12 Smith Street - John Smith - INV-1234 - Tax Invoice - "
+            "$245.00 - Paid"
+        ),
+    )
+    expect(
+        build_filename(
+            "John Smith",
             "MRI right knee",
             "16-05-26",
             include_date=False,

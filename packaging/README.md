@@ -20,6 +20,7 @@ The app bundles:
 - `helpers/vision_ocr.swift` source for diagnostics/rebuilds
 - Poppler tools used for PDF text extraction/rendering
 - Ollama runtime used to run the local model
+- Swift app shell used for the main drop-zone window
 
 It bundles the Ollama runtime, but not the model. On first run, the app will
 start bundled Ollama and download `qwen2.5:3b` if the model is missing.
@@ -61,7 +62,7 @@ Coworkers do not need Python or PyInstaller once the app has been built.
 After building, test the bundled launcher without touching PDFs or Ollama:
 
 ```bash
-"dist/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer" --self-test
+"dist/OSA PDF Renamer.app/Contents/MacOS/OSAPDFRenamer" --self-test
 ```
 
 The app version is read from the top-level `VERSION` file.
@@ -80,17 +81,26 @@ For local beta testing, install it with:
 packaging/install_quick_action.command
 ```
 
-The Quick Action calls:
+The Quick Action launches:
 
 ```text
-/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer
+/Applications/OSA PDF Renamer.app
 ```
 
 and falls back to:
 
 ```text
-~/Applications/OSA PDF Renamer.app/Contents/MacOS/OSA PDF Renamer
+~/Applications/OSA PDF Renamer.app
 ```
+
+The app bundle declares PDF document support, so Finder can drag PDFs onto
+`OSA PDF Renamer.app`. PyInstaller argument emulation passes those original file
+paths into the app, and the rename operation happens in the files' current
+folders.
+
+The main double-click UI is the app's Swift shell. It opens a native macOS
+window with a PDF drop zone and calls the bundled `renamer_cli` worker only when
+settings, about, or PDF renaming actions need the Python engine.
 
 The final `.pkg` installer should install the app and this workflow together,
 so coworkers do not need to move either item manually.
@@ -98,6 +108,17 @@ so coworkers do not need to move either item manually.
 When available, the Quick Action launches the app through the bundled
 `progress_runner` helper so users see a native OSA PDF Renamer progress window.
 Automator's own menu-bar status item may not show meaningful progress.
+
+For local development, install the separate dev Quick Action with:
+
+```bash
+packaging/install_dev_quick_action.command
+```
+
+This installs `Quick Actions > (DEV) Rename PDFs`, which runs
+`patient_pdf_renamer.py` from the current checkout instead of the installed app.
+Keep the normal `Rename OSA PDFs` action installed for testing the release app
+and update flow.
 
 macOS may not show a packaged Automator Quick Action immediately. On first use,
 the user may need to enable it once:

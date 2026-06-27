@@ -160,6 +160,27 @@ def format_toml_value(value) -> str:
     return '"' + str(value).replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
+def format_toml_key(key: str) -> str:
+    text = str(key)
+    if text.replace("_", "").replace("-", "").isalnum():
+        return text
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def append_toml_section(lines: list[str], path: list[str], values: dict) -> None:
+    lines.append("[" + ".".join(format_toml_key(part) for part in path) + "]")
+    nested = []
+    for key, value in values.items():
+        if isinstance(value, dict):
+            nested.append((str(key), value))
+        else:
+            lines.append(f"{format_toml_key(key)} = {format_toml_value(value)}")
+    lines.append("")
+
+    for key, value in nested:
+        append_toml_section(lines, [*path, key], value)
+
+
 def write_user_config(config: dict) -> None:
     USER_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
     lines = [
@@ -170,10 +191,7 @@ def write_user_config(config: dict) -> None:
     for section, values in config.items():
         if not isinstance(values, dict):
             continue
-        lines.append(f"[{section}]")
-        for key, value in values.items():
-            lines.append(f"{key} = {format_toml_value(value)}")
-        lines.append("")
+        append_toml_section(lines, [str(section)], values)
     USER_CONFIG_PATH.write_text("\n".join(lines), encoding="utf-8")
 
 
@@ -205,6 +223,11 @@ INCLUDE_DATE = bool(_OUTPUT.get("include_date", True))
 INCLUDE_SENDER = bool(_OUTPUT.get("include_sender", False))
 INCLUDE_NAME = bool(_OUTPUT.get("include_name", True))
 INCLUDE_TYPE = bool(_OUTPUT.get("include_type", True))
+INCLUDE_RECIPIENT = bool(_OUTPUT.get("include_recipient", False))
+INCLUDE_REFERENCE = bool(_OUTPUT.get("include_reference", False))
+INCLUDE_AMOUNT = bool(_OUTPUT.get("include_amount", False))
+INCLUDE_LOCATION = bool(_OUTPUT.get("include_location", False))
+INCLUDE_STATUS = bool(_OUTPUT.get("include_status", False))
 
 OLLAMA_MODEL = str(_OLLAMA.get("model", "qwen2.5:3b"))
 OLLAMA_URL = str(

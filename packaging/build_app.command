@@ -142,12 +142,39 @@ echo "Compiling progress helper..."
 /usr/bin/xcrun swiftc -O helpers/progress_runner.swift -o progress_runner
 chmod +x progress_runner
 
+echo "Compiling app shell..."
+/usr/bin/xcrun swiftc -O helpers/app_shell.swift -o app_shell
+chmod +x app_shell
+
 echo "Running PyInstaller..."
 "$PYTHON" -m PyInstaller --noconfirm "packaging/OSA PDF Renamer.spec"
 
+APP_BUNDLE="$PROJECT_DIR/dist/OSA PDF Renamer.app"
+APP_MACOS_DIR="$APP_BUNDLE/Contents/MacOS"
+PYTHON_RUNNER="$APP_MACOS_DIR/renamer_cli"
+PYINSTALLER_EXECUTABLE="$APP_MACOS_DIR/OSA PDF Renamer"
+APP_EXECUTABLE="$APP_MACOS_DIR/OSAPDFRenamer"
+
+echo "Installing Swift app shell..."
+if [[ ! -x "$PYINSTALLER_EXECUTABLE" ]]; then
+  echo "Missing PyInstaller app executable:"
+  echo "  $PYINSTALLER_EXECUTABLE"
+  exit 1
+fi
+rm -f "$PYTHON_RUNNER"
+mv "$PYINSTALLER_EXECUTABLE" "$PYTHON_RUNNER"
+cp "$PROJECT_DIR/app_shell" "$APP_EXECUTABLE"
+chmod +x "$APP_EXECUTABLE" "$PYTHON_RUNNER"
+/usr/libexec/PlistBuddy -c "Set :CFBundleExecutable OSAPDFRenamer" \
+  "$APP_BUNDLE/Contents/Info.plist"
+printf "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"
+
+echo "Signing app bundle..."
+/usr/bin/codesign --force --deep --sign - "$APP_BUNDLE" >/dev/null
+
 echo
 echo "Built:"
-echo "  $PROJECT_DIR/dist/OSA PDF Renamer.app"
+echo "  $APP_BUNDLE"
 echo
 if [[ -t 0 ]]; then
   read -k 1 "?Press any key to close."
