@@ -191,6 +191,13 @@ def contains_unknown_value(values: list[str]) -> bool:
     return contains_unresolved_value(values)
 
 
+def values_changed(fields: list[tuple[str, str]], values: list[str]) -> bool:
+    return any(
+        value.strip() != original_value.strip()
+        for (_, original_value), value in zip(fields, values, strict=True)
+    )
+
+
 def review_field_pairs(
     details: DocumentDetails,
     *,
@@ -259,10 +266,15 @@ def field_dialog_script(
         field_rows.append(
             f'set field{index} to ca\'s NSTextField\'s alloc()\'s '
             f'initWithFrame:(ca\'s NSMakeRect(142, {y}, 300, 24))\n'
+            f'field{index}\'s setEditable:true\n'
+            f'field{index}\'s setSelectable:true\n'
+            f'field{index}\'s setBezeled:true\n'
+            f'field{index}\'s setBordered:true\n'
+            f'field{index}\'s setDrawsBackground:true\n'
             f'field{index}\'s setStringValue:{applescript.literal(value)}\n'
             f'accessoryView\'s addSubview:field{index}'
         )
-        read_values.append(f'text of field{index}')
+        read_values.append(f'(field{index}\'s stringValue() as text)')
 
     values_expression = " & linefeed & ".join(read_values)
     accessory_height = max(24, len(fields) * 34)
@@ -284,6 +296,7 @@ def field_dialog_script(
         + "\n".join(field_rows)
         + "\n"
         'alert\'s setAccessoryView:accessoryView\n'
+        'alert\'s window()\'s setInitialFirstResponder:field1\n'
         'set response to alert\'s runModal()\n'
         'if response = 1000 then\n'
         f'  return "Save" & linefeed & {values_expression}\n'
@@ -318,6 +331,27 @@ def open_review_preview(item: RenameResult) -> None:
         )
     except OSError:
         pass
+
+
+def close_review_preview(item: RenameResult) -> None:
+    if sys.platform != "darwin":
+        return
+
+    path = review_preview_path(item)
+    if path is None:
+        return
+
+    script = (
+        'tell application "Preview"\n'
+        f'  close (every document whose name is {applescript.literal(path.name)})\n'
+        'end tell'
+    )
+    subprocess.run(
+        ["/usr/bin/osascript", "-e", script],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
 
 
 def prompt_for_correction(
@@ -390,6 +424,8 @@ def prompt_for_correction(
 
     values = [part.strip() for part in answer.splitlines()]
     if len(values) != len(fields):
+        return None
+    if not values_changed(fields, values):
         return None
     if contains_unresolved_value(values):
         return None
@@ -476,20 +512,23 @@ def review_unknowns(
     total = len(summary.review_items)
     for index, item in enumerate(summary.review_items, start=1):
         open_review_preview(item)
-        corrected = prompt_for_correction(
-            item,
-            position=index,
-            total=total,
-            include_date=include_date,
-            include_sender=include_sender,
-            include_name=include_name,
-            include_type=include_type,
-            include_recipient=include_recipient,
-            include_reference=include_reference,
-            include_amount=include_amount,
-            include_location=include_location,
-            include_status=include_status,
-        )
+        try:
+            corrected = prompt_for_correction(
+                item,
+                position=index,
+                total=total,
+                include_date=include_date,
+                include_sender=include_sender,
+                include_name=include_name,
+                include_type=include_type,
+                include_recipient=include_recipient,
+                include_reference=include_reference,
+                include_amount=include_amount,
+                include_location=include_location,
+                include_status=include_status,
+            )
+        finally:
+            close_review_preview(item)
         if corrected == EXIT_REVIEW:
             break
         if corrected is None:

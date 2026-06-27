@@ -16,6 +16,7 @@ from pdf_renamer.review import (
     missing_field_labels,
     review_field_pairs,
     review_preview_path,
+    values_changed,
 )
 
 
@@ -90,6 +91,10 @@ def main() -> int:
         raise AssertionError(f"unknown values should display as blanks: {missing_fields}")
     if missing_field_labels(missing_fields) != ["Date", "Subject"]:
         raise AssertionError("missing review fields were not labelled correctly")
+    if values_changed(fields, ["18-06-26", "Alex Sample", "Referral"]):
+        raise AssertionError("unchanged review values should be treated as skip")
+    if not values_changed(fields, ["19-06-26", "Alex Sample", "Referral"]):
+        raise AssertionError("changed review values should be treated as correction")
 
     script = field_dialog_script(
         title="Review PDF filename",
@@ -100,6 +105,8 @@ def main() -> int:
         raise AssertionError("review dialog should include only enabled fields")
     if "Subject:" not in script or "Document type:" not in script:
         raise AssertionError("review dialog is missing enabled fields")
+    if "setEditable:true" not in script or "stringValue() as text" not in script:
+        raise AssertionError("review fields should be editable text fields")
     if " | " in script or "separated by pipes" in script:
         raise AssertionError("review dialog should not use pipe-separated input")
 
