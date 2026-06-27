@@ -273,6 +273,7 @@ def field_dialog_script(
             f'field{index}\'s setBezeled:true\n'
             f'field{index}\'s setBordered:true\n'
             f'field{index}\'s setDrawsBackground:true\n'
+            f'field{index}\'s setFocusRingType:(ca\'s NSFocusRingTypeDefault)\n'
             f'field{index}\'s setStringValue:{applescript.literal(value)}\n'
             f'accessoryView\'s addSubview:field{index}'
         )
@@ -285,6 +286,7 @@ def field_dialog_script(
         'use framework "AppKit"\n'
         'use scripting additions\n'
         'set ca to current application\n'
+        'ca\'s NSRunningApplication\'s currentApplication()\'s activateWithOptions:3\n'
         'set alert to ca\'s NSAlert\'s alloc()\'s init()\n'
         f'alert\'s setMessageText:{applescript.literal(title)}\n'
         f'alert\'s setInformativeText:{applescript.literal(message)}\n'

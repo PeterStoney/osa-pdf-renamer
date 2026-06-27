@@ -107,6 +107,8 @@ def main() -> int:
         raise AssertionError("review dialog is missing enabled fields")
     if "setEditable:true" not in script or "stringValue() as text" not in script:
         raise AssertionError("review fields should be editable text fields")
+    if "activateWithOptions:3" not in script or "System Events" in script:
+        raise AssertionError("review dialog should activate without System Events")
     if "setInitialFirstResponder" in script:
         raise AssertionError("review dialog should not force a first responder before display")
     if " | " in script or "separated by pipes" in script:
