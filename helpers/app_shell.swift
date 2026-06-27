@@ -137,6 +137,34 @@ struct PresetInfo: Decodable {
     let fields: [String]
 }
 
+struct GitHubRelease: Decodable {
+    let tagName: String
+    let htmlURL: String
+    let assets: [GitHubReleaseAsset]
+
+    enum CodingKeys: String, CodingKey {
+        case tagName = "tag_name"
+        case htmlURL = "html_url"
+        case assets
+    }
+}
+
+struct GitHubReleaseAsset: Decodable {
+    let name: String
+    let browserDownloadURL: String
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case browserDownloadURL = "browser_download_url"
+    }
+}
+
+struct UpdateInfo {
+    let latestVersion: String
+    let releaseURL: URL
+    let packageURL: URL?
+}
+
 let presetFieldOptions: [(label: String, key: String, defaultEnabled: Bool)] = [
     ("Date", "include_date", true),
     ("Sender", "include_sender", false),
@@ -183,6 +211,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         contentsURL.appendingPathComponent("Resources")
     }
 
+    private var bundledConfigURL: URL {
+        resourcesURL.appendingPathComponent("config.toml")
+    }
+
     private var userConfigURL: URL {
         FileManager.default
             .homeDirectoryForCurrentUser
@@ -222,6 +254,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         showWindow()
+        checkForUpdatesOnLaunch()
         if openSettingsOnLaunch {
             DispatchQueue.main.async {
                 self.showSettings()
@@ -322,6 +355,254 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         root.addSubview(settingsButton)
 
         return root
+    }
+
+    private func checkForUpdatesOnLaunch() {
+        guard updateChecksEnabled() else {
+            return
+        }
+        let repo = updateRepository()
+        guard !repo.isEmpty,
+              let url = URL(
+                string: "https://api.github.com/repos/\(repo)/releases/latest"
+              ) else {
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        URLSession.shared.dataTask(with: request) { [weak self] data, _, error in
+            guard let self, error == nil, let data else {
+                return
+            }
+            guard let release = try? JSONDecoder().decode(
+                GitHubRelease.self,
+                from: data
+            ) else {
+                return
+            }
+            guard let update = self.updateInfo(from: release),
+                  self.isVersion(update.latestVersion, newerThan: self.version) else {
+                return
+            }
+            DispatchQueue.main.async {
+                self.presentUpdatePrompt(update)
+            }
+        }.resume()
+    }
+
+    private func presentUpdatePrompt(_ update: UpdateInfo) {
+        guard let window else {
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "OSA PDF Renamer update available"
+        alert.informativeText = """
+        A newer OSA PDF Renamer installer is available.
+
+        Installed version: \(version)
+        Latest version: \(update.latestVersion)
+
+        Download the installer now?
+        """
+        alert.addButton(withTitle: "Download")
+        alert.addButton(withTitle: "Later")
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else {
+                return
+            }
+            self?.downloadUpdate(update)
+        }
+    }
+
+    private func downloadUpdate(_ update: UpdateInfo) {
+        guard let packageURL = update.packageURL else {
+            DispatchQueue.main.async {
+                self.presentReleaseFallback(
+                    update,
+                    message: "The release does not include a pkg installer asset."
+                )
+            }
+            return
+        }
+
+        URLSession.shared.downloadTask(with: packageURL) { [weak self] tempURL, _, error in
+            guard let self else {
+                return
+            }
+            if let error {
+                DispatchQueue.main.async {
+                    self.presentReleaseFallback(update, message: error.localizedDescription)
+                }
+                return
+            }
+            guard let tempURL else {
+                DispatchQueue.main.async {
+                    self.presentReleaseFallback(update, message: "No downloaded file was returned.")
+                }
+                return
+            }
+
+            let destination = FileManager.default
+                .homeDirectoryForCurrentUser
+                .appendingPathComponent("Downloads")
+                .appendingPathComponent(
+                    "OSA PDF Renamer Installer \(update.latestVersion).pkg"
+                )
+            do {
+                try? FileManager.default.removeItem(at: destination)
+                try FileManager.default.moveItem(at: tempURL, to: destination)
+                DispatchQueue.main.async {
+                    self.presentDownloadedUpdate(destination)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.presentReleaseFallback(update, message: error.localizedDescription)
+                }
+            }
+        }.resume()
+    }
+
+    private func presentDownloadedUpdate(_ packageURL: URL) {
+        guard let window else {
+            NSWorkspace.shared.open(packageURL)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "OSA PDF Renamer update downloaded"
+        alert.informativeText = """
+        The updated installer has been downloaded and will open now.
+
+        \(packageURL.path)
+        """
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window) { _ in
+            NSWorkspace.shared.open(packageURL)
+        }
+    }
+
+    private func presentReleaseFallback(_ update: UpdateInfo, message: String) {
+        guard let window else {
+            NSWorkspace.shared.open(update.releaseURL)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "OSA PDF Renamer update failed"
+        alert.informativeText = """
+        The installer could not be downloaded automatically.
+
+        Details: \(message)
+
+        Open the GitHub release page instead?
+        """
+        alert.addButton(withTitle: "Open")
+        alert.addButton(withTitle: "Later")
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                NSWorkspace.shared.open(update.releaseURL)
+            }
+        }
+    }
+
+    private func updateInfo(from release: GitHubRelease) -> UpdateInfo? {
+        let tag = release.tagName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let latest = tag.lowercased().hasPrefix("v")
+            ? String(tag.dropFirst())
+            : tag
+        guard !latest.isEmpty,
+              let releaseURL = URL(string: release.htmlURL) else {
+            return nil
+        }
+        let packageURL = release.assets.first { asset in
+            asset.name.lowercased().hasSuffix(".pkg")
+        }.flatMap { URL(string: $0.browserDownloadURL) }
+        return UpdateInfo(
+            latestVersion: latest,
+            releaseURL: releaseURL,
+            packageURL: packageURL
+        )
+    }
+
+    private func updateChecksEnabled() -> Bool {
+        guard let value = configValue(section: "renamer", key: "update_check") else {
+            return true
+        }
+        return value.lowercased() != "false"
+    }
+
+    private func updateRepository() -> String {
+        configValue(section: "updates", key: "github_repo")
+            .map(unquoteToml) ?? "PeterStoney/osa-pdf-renamer"
+    }
+
+    private func configValue(section: String, key: String) -> String? {
+        let userValue = configValue(
+            in: (try? String(contentsOf: userConfigURL, encoding: .utf8)) ?? "",
+            section: section,
+            key: key
+        )
+        if let userValue {
+            return userValue
+        }
+        return configValue(
+            in: (try? String(contentsOf: bundledConfigURL, encoding: .utf8)) ?? "",
+            section: section,
+            key: key
+        )
+    }
+
+    private func configValue(in text: String, section targetSection: String, key targetKey: String) -> String? {
+        var section = ""
+        for rawLine in text.components(separatedBy: .newlines) {
+            let line = rawLine
+                .split(separator: "#", maxSplits: 1)
+                .first
+                .map(String.init)?
+                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if line.isEmpty {
+                continue
+            }
+            if line.hasPrefix("[") && line.hasSuffix("]") {
+                section = String(line.dropFirst().dropLast())
+                continue
+            }
+            guard section == targetSection else {
+                continue
+            }
+            let parts = line.split(separator: "=", maxSplits: 1).map {
+                String($0).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if parts.count == 2 && parts[0] == targetKey {
+                return parts[1]
+            }
+        }
+        return nil
+    }
+
+    private func isVersion(_ candidate: String, newerThan current: String) -> Bool {
+        let candidateParts = versionParts(candidate)
+        let currentParts = versionParts(current)
+        let count = max(candidateParts.count, currentParts.count)
+        for index in 0..<count {
+            let candidatePart = index < candidateParts.count ? candidateParts[index] : 0
+            let currentPart = index < currentParts.count ? currentParts[index] : 0
+            if candidatePart > currentPart {
+                return true
+            }
+            if candidatePart < currentPart {
+                return false
+            }
+        }
+        return false
+    }
+
+    private func versionParts(_ value: String) -> [Int] {
+        value
+            .split { !$0.isNumber }
+            .compactMap { Int($0) }
     }
 
     @objc private func choosePDFs() {
