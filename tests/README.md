@@ -6,6 +6,11 @@ Run the local, read-only suite with:
 scripts/run_regression.command
 ```
 
+The regression suite requires the configured local Ollama model by default,
+because the shipped app uses local model extraction. For offline/sandbox-only
+smoke checks, use `python tests/run_regression.py --allow-no-model`, but do not
+treat that as a full regression run.
+
 Add synthetic OCR cases to `regression_cases.json`:
 
 ```json
@@ -19,8 +24,9 @@ Add synthetic OCR cases to `regression_cases.json`:
 ```
 
 Do not store real patient information or paths to medical files in the manifest.
-The runner compares synthetic OCR against expected extraction results and does
-not rename or modify any files.
+The runner compares synthetic OCR against expected extraction results, verifies
+that at least one case exercised model output, and does not rename or modify any
+files.
 
 After building the app, run:
 

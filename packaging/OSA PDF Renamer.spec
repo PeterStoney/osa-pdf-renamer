@@ -66,7 +66,7 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
-    argv_emulation=False,
+    argv_emulation=True,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
@@ -92,6 +92,18 @@ app = BUNDLE(
         "CFBundleName": "OSA PDF Renamer",
         "CFBundleShortVersionString": VERSION,
         "CFBundleVersion": VERSION,
+        "CFBundleDocumentTypes": [
+            {
+                "CFBundleTypeName": "PDF document",
+                "CFBundleTypeRole": "Editor",
+                "LSHandlerRank": "Alternate",
+                "LSItemContentTypes": [
+                    "com.adobe.pdf",
+                    "com.apple.pdf",
+                    "public.pdf",
+                ],
+            },
+        ],
         "LSMinimumSystemVersion": "12.0",
         "NSHighResolutionCapable": True,
     },

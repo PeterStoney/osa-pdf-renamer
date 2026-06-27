@@ -1,11 +1,11 @@
 import importlib.util
-import json
 import re
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+from . import applescript
 from .config import (
     OLLAMA_EXECUTABLE,
     OLLAMA_MODEL,
@@ -44,12 +44,12 @@ def show_dialog(
         print(f"{title}: {message}")
         return default_button
 
-    button_list = ", ".join(json.dumps(button) for button in buttons)
+    button_list = ", ".join(applescript.literal(button) for button in buttons)
     script = (
-        f"display dialog {json.dumps(message)} "
-        f"with title {json.dumps(title)} "
+        f"display dialog {applescript.literal(message)} "
+        f"with title {applescript.literal(title)} "
         f"buttons {{{button_list}}} "
-        f"default button {json.dumps(default_button)}"
+        f"default button {applescript.literal(default_button)}"
     )
     try:
         result = subprocess.run(

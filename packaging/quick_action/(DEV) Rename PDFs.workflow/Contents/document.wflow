@@ -61,20 +61,27 @@
 					<key>COMMAND_STRING</key>
 					<string>set -euo pipefail
 
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export PATH="/opt/miniconda3/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-APP_BUNDLE="/Applications/OSA PDF Renamer.app"
+PROJECT_DIR="__OSA_PDF_RENAMER_PROJECT_DIR__"
+APP="$PROJECT_DIR/patient_pdf_renamer.py"
+PYTHON="${OSA_PDF_RENAMER_DEV_PYTHON:-/opt/miniconda3/bin/python}"
 
-if [[ ! -d "$APP_BUNDLE" ]]; then
-  APP_BUNDLE="$HOME/Applications/OSA PDF Renamer.app"
+if [[ ! -x "$PYTHON" ]]; then
+  PYTHON="$(command -v python3 || true)"
 fi
 
-if [[ ! -d "$APP_BUNDLE" ]]; then
-  /usr/bin/osascript -e 'display dialog "OSA PDF Renamer is not installed in /Applications or ~/Applications." with title "OSA PDF Renamer" buttons {"OK"} default button "OK"'
+if [[ -z "${PYTHON:-}" || ! -x "$PYTHON" ]]; then
+  /usr/bin/osascript -e 'display dialog "Could not find a Python interpreter for the dev PDF Renamer workflow." with title "(DEV) Rename PDFs" buttons {"OK"} default button "OK"'
   exit 1
 fi
 
-APP="$APP_BUNDLE/Contents/MacOS/OSA PDF Renamer"
+if [[ ! -f "$APP" ]]; then
+  /usr/bin/osascript -e 'display dialog "Could not find patient_pdf_renamer.py in the configured dev repo." with title "(DEV) Rename PDFs" buttons {"OK"} default button "OK"'
+  exit 1
+fi
+
+cd "$PROJECT_DIR"
 
 pdfs=()
 for item in "$@"; do
@@ -85,7 +92,7 @@ for item in "$@"; do
 done
 
 if [[ ${#pdfs[@]} -eq 0 ]]; then
-  /usr/bin/osascript -e 'display dialog "No PDFs were selected." with title "OSA PDF Renamer" buttons {"OK"} default button "OK"'
+  /usr/bin/osascript -e 'display dialog "No PDFs were selected." with title "(DEV) Rename PDFs" buttons {"OK"} default button "OK"'
   exit 0
 fi
 
@@ -97,24 +104,21 @@ show_error() {
   [[ -n "$message" ]] || return 0
   /usr/bin/osascript - "$message" &lt;&lt;'APPLESCRIPT'
 on run argv
-  display dialog (item 1 of argv) with title "OSA PDF Renamer" buttons {"OK"} default button "OK"
+  display dialog (item 1 of argv) with title "(DEV) Rename PDFs" buttons {"OK"} default button "OK"
 end run
 APPLESCRIPT
 }
 
-PROGRESS_RUNNER="$APP_BUNDLE/Contents/Resources/progress_runner"
-if [[ ! -x "$PROGRESS_RUNNER" ]]; then
-  PROGRESS_RUNNER="$APP_BUNDLE/Contents/MacOS/progress_runner"
-fi
+PROGRESS_RUNNER="$PROJECT_DIR/progress_runner"
 
 if [[ -x "$PROGRESS_RUNNER" ]]; then
-  "$PROGRESS_RUNNER" --progress-env OSA_PDF_RENAMER_PROGRESS_FILE "OSA PDF Renamer" "Renaming PDFs" /usr/bin/open -W -n "$APP_BUNDLE" --args "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
+  "$PROGRESS_RUNNER" --progress-env OSA_PDF_RENAMER_PROGRESS_FILE "(DEV) Rename PDFs" "Renaming PDFs" "$PYTHON" "$APP" "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
     output="$(/bin/cat "$output_file")"
     show_error "$output"
     exit 1
   }
 else
-  /usr/bin/open -W -n "$APP_BUNDLE" --args "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
+  "$PYTHON" "$APP" "${pdfs[@]}" &gt; "$output_file" 2&gt;&amp;1 || {
     output="$(/bin/cat "$output_file")"
     show_error "$output"
     exit 1

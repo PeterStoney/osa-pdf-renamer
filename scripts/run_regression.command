@@ -11,7 +11,7 @@ fi
 
 cd "$PROJECT_DIR"
 
-echo "Running privacy-safe PDF renamer regression tests..."
+echo "Running privacy-safe PDF renamer regression tests with Ollama..."
 echo
 "$PYTHON" tests/run_regression.py
 "$PYTHON" tests/test_update_check.py

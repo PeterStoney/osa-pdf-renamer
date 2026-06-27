@@ -7,8 +7,13 @@ from .config import (
     DRY_RUN,
     HEALTH_CHECK,
     INCLUDE_DATE,
+    INCLUDE_AMOUNT,
+    INCLUDE_LOCATION,
     INCLUDE_NAME,
+    INCLUDE_RECIPIENT,
+    INCLUDE_REFERENCE,
     INCLUDE_SENDER,
+    INCLUDE_STATUS,
     INCLUDE_TYPE,
     NOTIFICATIONS,
     OLLAMA_EXECUTABLE,
@@ -40,6 +45,11 @@ def main(
     include_sender: bool = INCLUDE_SENDER,
     include_name: bool = INCLUDE_NAME,
     include_type: bool = INCLUDE_TYPE,
+    include_recipient: bool = INCLUDE_RECIPIENT,
+    include_reference: bool = INCLUDE_REFERENCE,
+    include_amount: bool = INCLUDE_AMOUNT,
+    include_location: bool = INCLUDE_LOCATION,
+    include_status: bool = INCLUDE_STATUS,
 ):
     arguments = list(sys.argv[1:] if args is None else args)
     summary = BatchSummary()
@@ -87,6 +97,11 @@ def main(
                     include_sender=include_sender,
                     include_name=include_name,
                     include_type=include_type,
+                    include_recipient=include_recipient,
+                    include_reference=include_reference,
+                    include_amount=include_amount,
+                    include_location=include_location,
+                    include_status=include_status,
                 )
                 if result.renamed:
                     summary.renamed += 1
@@ -125,6 +140,11 @@ def main(
                     include_sender=include_sender,
                     include_name=include_name,
                     include_type=include_type,
+                    include_recipient=include_recipient,
+                    include_reference=include_reference,
+                    include_amount=include_amount,
+                    include_location=include_location,
+                    include_status=include_status,
                 )
                 if corrected_count:
                     summary.needs_review = max(

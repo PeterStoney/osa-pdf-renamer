@@ -14,11 +14,14 @@ venv/
 # Local build artifacts
 vision_ocr
 progress_runner
+drop_zone
+app_shell
 build/
 dist/
 *.egg-info/
 
 # Patient documents and generated review files
+local_test_documents/
 *.pdf
 *.debug.txt
 *.ocr.txt
@@ -28,3 +31,4 @@ config.local.toml
 corrections.jsonl
 .env
 .env.*
+AGENTS.md
