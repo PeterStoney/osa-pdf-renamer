@@ -247,68 +247,50 @@ def missing_field_labels(fields: list[tuple[str, str]]) -> list[str]:
     ]
 
 
-def field_dialog_script(
+def field_value_dialog_script(
+    *,
+    title: str,
+    message: str,
+    field_label: str,
+    value: str,
+) -> str:
+    return (
+        "set dialogResult to display dialog "
+        f"{applescript.literal(message + chr(10) + chr(10) + field_label + ':')} "
+        f"default answer {applescript.literal(value)} "
+        f"with title {applescript.literal(title)} "
+        'buttons {"Exit review", "Skip file", "Next"} '
+        'default button "Next"\n'
+        'return button returned of dialogResult & linefeed & '
+        'text returned of dialogResult'
+    )
+
+
+def prompt_review_values(
     *,
     title: str,
     message: str,
     fields: list[tuple[str, str]],
-) -> str:
-    label_rows = []
-    field_rows = []
-    read_values = []
-
-    for index, (label, value) in enumerate(fields, start=1):
-        y = (len(fields) - index) * 34
-        label_rows.append(
-            f'set label{index} to ca\'s NSTextField\'s '
-            f'labelWithString:{applescript.literal(label + ":")}\n'
-            f'label{index}\'s setFrame:(ca\'s NSMakeRect(0, {y + 3}, 130, 20))\n'
-            f'accessoryView\'s addSubview:label{index}'
+) -> list[str] | None | str:
+    values = []
+    for label, value in fields:
+        output = run_osascript(
+            field_value_dialog_script(
+                title=title,
+                message=message,
+                field_label=label,
+                value=value,
+            )
         )
-        field_rows.append(
-            f'set field{index} to ca\'s NSTextField\'s alloc()\'s '
-            f'initWithFrame:(ca\'s NSMakeRect(142, {y}, 300, 24))\n'
-            f'field{index}\'s setEditable:true\n'
-            f'field{index}\'s setSelectable:true\n'
-            f'field{index}\'s setBezeled:true\n'
-            f'field{index}\'s setBordered:true\n'
-            f'field{index}\'s setDrawsBackground:true\n'
-            f'field{index}\'s setFocusRingType:(ca\'s NSFocusRingTypeDefault)\n'
-            f'field{index}\'s setStringValue:{applescript.literal(value)}\n'
-            f'accessoryView\'s addSubview:field{index}'
-        )
-        read_values.append(f'(field{index}\'s stringValue() as text)')
-
-    values_expression = " & linefeed & ".join(read_values)
-    accessory_height = max(24, len(fields) * 34)
-
-    return (
-        'use framework "AppKit"\n'
-        'use scripting additions\n'
-        'set ca to current application\n'
-        'ca\'s NSRunningApplication\'s currentApplication()\'s activateWithOptions:3\n'
-        'set alert to ca\'s NSAlert\'s alloc()\'s init()\n'
-        f'alert\'s setMessageText:{applescript.literal(title)}\n'
-        f'alert\'s setInformativeText:{applescript.literal(message)}\n'
-        'alert\'s addButtonWithTitle:"Save"\n'
-        'alert\'s addButtonWithTitle:"Skip"\n'
-        'alert\'s addButtonWithTitle:"Exit review"\n'
-        f'set accessoryView to ca\'s NSView\'s alloc()\'s '
-        f'initWithFrame:(ca\'s NSMakeRect(0, 0, 452, {accessory_height}))\n'
-        + "\n".join(label_rows)
-        + "\n"
-        + "\n".join(field_rows)
-        + "\n"
-        'alert\'s setAccessoryView:accessoryView\n'
-        'set response to alert\'s runModal()\n'
-        'if response = 1000 then\n'
-        f'  return "Save" & linefeed & {values_expression}\n'
-        'else if response = 1001 then\n'
-        '  return "Skip"\n'
-        'else\n'
-        '  return "Exit review"\n'
-        'end if\n'
-    )
+        if not output:
+            return None
+        button, _, answer = output.partition("\n")
+        if button == "Exit review":
+            return EXIT_REVIEW
+        if button != "Next":
+            return None
+        values.append(answer.strip())
+    return values
 
 
 def review_preview_path(item: RenameResult) -> Path | None:
@@ -410,22 +392,15 @@ def prompt_for_correction(
         "before saving."
     )
 
-    script = field_dialog_script(
+    values = prompt_review_values(
         title="Review PDF filename",
         message=f"{message}\n\n{detected}",
         fields=fields,
     )
-    output = run_osascript(script)
-    if not output:
-        return None
-
-    button, _, answer = output.partition("\n")
-    if button == "Exit review":
+    if values == EXIT_REVIEW:
         return EXIT_REVIEW
-    if button != "Save":
+    if values is None:
         return None
-
-    values = [part.strip() for part in answer.splitlines()]
     if len(values) != len(fields):
         return None
     if not values_changed(fields, values):

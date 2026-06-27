@@ -12,7 +12,7 @@ from pdf_renamer.models import DocumentDetails
 from pdf_renamer.review import (
     contains_unknown_value,
     contains_unresolved_value,
-    field_dialog_script,
+    field_value_dialog_script,
     missing_field_labels,
     review_field_pairs,
     review_preview_path,
@@ -96,21 +96,18 @@ def main() -> int:
     if not values_changed(fields, ["19-06-26", "Alex Sample", "Referral"]):
         raise AssertionError("changed review values should be treated as correction")
 
-    script = field_dialog_script(
+    script = field_value_dialog_script(
         title="Review PDF filename",
         message="Review 1 of 2\n\nMissing fields: Date",
-        fields=fields,
+        field_label="Date",
+        value="18-06-26",
     )
-    if "Date:" not in script or "Sender:" in script:
-        raise AssertionError("review dialog should include only enabled fields")
-    if "Subject:" not in script or "Document type:" not in script:
-        raise AssertionError("review dialog is missing enabled fields")
-    if "setEditable:true" not in script or "stringValue() as text" not in script:
-        raise AssertionError("review fields should be editable text fields")
-    if "activateWithOptions:3" not in script or "System Events" in script:
-        raise AssertionError("review dialog should activate without System Events")
-    if "setInitialFirstResponder" in script:
-        raise AssertionError("review dialog should not force a first responder before display")
+    if "default answer" not in script or "Date:" not in script:
+        raise AssertionError("review should use a standard editable text prompt")
+    if "Skip file" not in script or "Exit review" not in script:
+        raise AssertionError("review prompt should support skipping and exiting")
+    if "NSTextField" in script or "NSAlert" in script:
+        raise AssertionError("review should not use custom AppKit text fields")
     if " | " in script or "separated by pipes" in script:
         raise AssertionError("review dialog should not use pipe-separated input")
 
