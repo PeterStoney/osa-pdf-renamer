@@ -142,6 +142,10 @@ echo "Compiling progress helper..."
 /usr/bin/xcrun swiftc -O helpers/progress_runner.swift -o progress_runner
 chmod +x progress_runner
 
+echo "Compiling review dialog helper..."
+/usr/bin/xcrun swiftc -O helpers/review_dialog.swift -o review_dialog
+chmod +x review_dialog
+
 echo "Compiling app shell..."
 /usr/bin/xcrun swiftc -O helpers/app_shell.swift -o app_shell
 chmod +x app_shell

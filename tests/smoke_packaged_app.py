@@ -71,6 +71,7 @@ def main() -> int:
         "pdfinfo",
         "vision_ocr",
         "progress_runner",
+        "review_dialog",
         "ollama",
     ):
         candidates = (

@@ -16,6 +16,7 @@ vision_ocr
 progress_runner
 drop_zone
 app_shell
+review_dialog
 build/
 dist/
 *.egg-info/

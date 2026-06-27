@@ -99,6 +99,12 @@ PROGRESS_RUNNER_EXECUTABLE = Path(
         "progress_runner",
     )
 )
+REVIEW_DIALOG_EXECUTABLE = Path(
+    first_available_executable(
+        *bundled_executable_candidates("review_dialog"),
+        "review_dialog",
+    )
+)
 PDFTOTEXT_EXECUTABLE = first_available_executable(
     *bundled_executable_candidates("pdftotext"),
     "pdftotext",

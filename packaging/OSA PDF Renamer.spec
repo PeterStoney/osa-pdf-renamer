@@ -18,6 +18,7 @@ a = Analysis(
     binaries=[
         (str(PROJECT_DIR / "vision_ocr"), "."),
         (str(PROJECT_DIR / "progress_runner"), "."),
+        (str(PROJECT_DIR / "review_dialog"), "."),
         *include_if_exists(POPPLER_DIR / "bin" / "pdftotext", "bin"),
         *include_if_exists(POPPLER_DIR / "bin" / "pdftoppm", "bin"),
         *include_if_exists(POPPLER_DIR / "bin" / "pdfinfo", "bin"),

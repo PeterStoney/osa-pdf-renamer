@@ -17,6 +17,7 @@ The app bundles:
 - default `config.toml`
 - compiled `vision_ocr` helper
 - native `progress_runner` helper for first-run model downloads
+- native `review_dialog` helper for editable review prompts
 - `helpers/vision_ocr.swift` source for diagnostics/rebuilds
 - Poppler tools used for PDF text extraction/rendering
 - Ollama runtime used to run the local model

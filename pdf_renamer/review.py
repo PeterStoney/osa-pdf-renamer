@@ -1,9 +1,10 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
 
 from . import applescript
-from .config import UNKNOWN
+from .config import REVIEW_DIALOG_EXECUTABLE, UNKNOWN
 from .corrections import save_correction, value_or_unknown
 from .models import BatchSummary, DocumentDetails, RenameResult
 from .naming import build_filename, unique_path
@@ -272,6 +273,38 @@ def prompt_review_values(
     message: str,
     fields: list[tuple[str, str]],
 ) -> list[str] | None | str:
+    if REVIEW_DIALOG_EXECUTABLE.is_file():
+        payload = {
+            "title": title,
+            "message": message,
+            "fields": [
+                {"label": label, "value": value}
+                for label, value in fields
+            ],
+        }
+        result = subprocess.run(
+            [str(REVIEW_DIALOG_EXECUTABLE)],
+            input=json.dumps(payload),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            try:
+                response = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                response = {}
+            action = response.get("action")
+            if action == "exit":
+                return EXIT_REVIEW
+            if action == "save":
+                values = response.get("values")
+                if isinstance(values, list):
+                    return [str(value).strip() for value in values]
+            return None
+        if result.stderr.strip():
+            print(result.stderr.strip(), file=sys.stderr)
+
     values = []
     for label, value in fields:
         output = run_osascript(
