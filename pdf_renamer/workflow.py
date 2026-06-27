@@ -4,7 +4,11 @@ from .config import UNKNOWN
 from .extraction import extract_document_details_with_ollama
 from .models import RenameResult
 from .naming import build_filename, unique_path
-from .ocr import extract_document_text, enhance_text_with_targeted_field_ocr
+from .ocr import (
+    extract_document_text,
+    enhance_text_with_recovery_pages,
+    enhance_text_with_targeted_field_ocr,
+)
 
 
 def unresolved_enabled_fields(
@@ -122,13 +126,6 @@ def rename_pdf(
     include_location: bool = False,
     include_status: bool = False,
 ) -> RenameResult:
-    text = extract_document_text(pdf_path)
-    if not text.strip():
-        raise RuntimeError(
-            "No text could be extracted from the first page. "
-            "Check PDF rendering, Vision OCR, and app permissions."
-        )
-
     required_fields = enabled_fields(
         include_date=include_date,
         include_sender=include_sender,
@@ -140,6 +137,19 @@ def rename_pdf(
         include_location=include_location,
         include_status=include_status,
     )
+    text = extract_document_text(pdf_path)
+    if not text.strip():
+        text = enhance_text_with_recovery_pages(
+            pdf_path,
+            "",
+            required_fields,
+        )
+    if not text.strip():
+        raise RuntimeError(
+            "No text could be extracted from the first, last, or fallback "
+            "pages. Check PDF rendering, Vision OCR, and app permissions."
+        )
+
     details = extract_document_details_with_ollama(
         text,
         required_fields=required_fields,
@@ -156,6 +166,32 @@ def rename_pdf(
         include_location=include_location,
         include_status=include_status,
     )
+    if unresolved_fields:
+        enhanced_text = enhance_text_with_recovery_pages(
+            pdf_path,
+            text,
+            unresolved_fields,
+        )
+        if enhanced_text != text:
+            recovered_details = extract_document_details_with_ollama(
+                enhanced_text,
+                required_fields=required_fields,
+            )
+            details = merge_recovered_details(details, recovered_details)
+            text = enhanced_text
+            unresolved_fields = unresolved_enabled_fields(
+                details,
+                include_date=include_date,
+                include_sender=include_sender,
+                include_name=include_name,
+                include_type=include_type,
+                include_recipient=include_recipient,
+                include_reference=include_reference,
+                include_amount=include_amount,
+                include_location=include_location,
+                include_status=include_status,
+            )
+
     if unresolved_fields:
         enhanced_text = enhance_text_with_targeted_field_ocr(
             pdf_path,

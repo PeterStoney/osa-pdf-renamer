@@ -8,6 +8,7 @@ from pathlib import Path
 from pdf2image import convert_from_path
 
 from .config import (
+    PDFINFO_EXECUTABLE,
     PDFTOPPM_EXECUTABLE,
     PDFTOTEXT_EXECUTABLE,
     VISION_DPI,
@@ -126,16 +127,49 @@ FIELD_LABEL_PATTERNS = {
 }
 
 
-def extract_embedded_pdf_text(pdf_path: Path) -> str:
-    """Read an existing first-page text layer without rendering or OCR."""
+def pdf_page_count(pdf_path: Path) -> int:
+    try:
+        result = subprocess.run(
+            [PDFINFO_EXECUTABLE, str(pdf_path)],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        if result.returncode != 0:
+            return 1
+        match = re.search(r"^Pages:\s*(\d+)", result.stdout, re.MULTILINE)
+        return max(1, int(match.group(1))) if match else 1
+    except Exception:
+        return 1
+
+
+def recovery_page_numbers(pdf_path: Path) -> list[int]:
+    """Prefer pages likely to contain summary identifiers without scanning all pages."""
+    total_pages = pdf_page_count(pdf_path)
+    pages = [1]
+    if total_pages > 1:
+        pages.append(total_pages)
+    if total_pages > 2:
+        pages.append(2)
+
+    unique_pages = []
+    for page in pages:
+        if page not in unique_pages:
+            unique_pages.append(page)
+    return unique_pages
+
+
+def extract_embedded_pdf_text(pdf_path: Path, page_number: int = 1) -> str:
+    """Read an existing page text layer without rendering or OCR."""
     try:
         result = subprocess.run(
             [
                 PDFTOTEXT_EXECUTABLE,
                 "-f",
-                "1",
+                str(page_number),
                 "-l",
-                "1",
+                str(page_number),
                 "-layout",
                 str(pdf_path),
                 "-",
@@ -155,7 +189,7 @@ def has_useful_pdf_text(text: str) -> bool:
     return len(text) >= 200 and len(words) >= 25
 
 
-def render_first_page(pdf_path: Path, dpi: int = 225):
+def render_page(pdf_path: Path, page_number: int = 1, dpi: int = 225):
     poppler_path = None
     pdftoppm_path = Path(PDFTOPPM_EXECUTABLE)
     if pdftoppm_path.is_file():
@@ -163,12 +197,16 @@ def render_first_page(pdf_path: Path, dpi: int = 225):
 
     pages = convert_from_path(
         str(pdf_path),
-        first_page=1,
-        last_page=1,
+        first_page=page_number,
+        last_page=page_number,
         dpi=dpi,
         poppler_path=poppler_path,
     )
     return pages[0] if pages else None
+
+
+def render_first_page(pdf_path: Path, dpi: int = 225):
+    return render_page(pdf_path, page_number=1, dpi=dpi)
 
 
 def extract_structured_macos_vision(
@@ -180,7 +218,7 @@ def extract_structured_macos_vision(
         return VisionOCR()
 
     try:
-        page = page or render_first_page(pdf_path)
+        page = page or render_page(pdf_path, page_number=1)
         if page is None:
             return VisionOCR()
 
@@ -381,34 +419,45 @@ def ocr_crop_text(
     return f"{label}: " + " ".join(lines)
 
 
-def extract_targeted_field_text(pdf_path: Path, target_fields: set[str]) -> str:
+def extract_targeted_field_text(
+    pdf_path: Path,
+    target_fields: set[str],
+    *,
+    page_numbers: list[int] | None = None,
+) -> str:
     """Retry OCR around likely labels for unresolved filename fields."""
     if not target_fields:
         return ""
 
-    try:
-        page = render_first_page(pdf_path, dpi=VISION_DPI)
-    except Exception as error:
-        print(f"Targeted OCR rendering failed for {pdf_path.name}: {error}")
-        return ""
-
-    if page is None:
-        return ""
-
-    vision = extract_structured_macos_vision(pdf_path, page=page)
-    candidates = field_crop_candidates(vision.lines, target_fields)
-    if not candidates:
-        return ""
-
     results = []
     seen_text = set()
-    for label, box in candidates:
-        crop_text = ocr_crop_text(pdf_path, page, label, box)
-        normalized = re.sub(r"\s+", " ", crop_text).strip().lower()
-        if not normalized or normalized in seen_text:
+    for page_number in page_numbers or [1]:
+        try:
+            page = render_page(pdf_path, page_number=page_number, dpi=VISION_DPI)
+        except Exception as error:
+            print(
+                f"Targeted OCR rendering failed for {pdf_path.name} "
+                f"page {page_number}: {error}"
+            )
             continue
-        seen_text.add(normalized)
-        results.append(crop_text)
+
+        if page is None:
+            continue
+
+        vision = extract_structured_macos_vision(pdf_path, page=page)
+        candidates = field_crop_candidates(vision.lines, target_fields)
+        for label, box in candidates:
+            crop_text = ocr_crop_text(
+                pdf_path,
+                page,
+                f"page {page_number} {label}",
+                box,
+            )
+            normalized = re.sub(r"\s+", " ", crop_text).strip().lower()
+            if not normalized or normalized in seen_text:
+                continue
+            seen_text.add(normalized)
+            results.append(crop_text)
 
     return "\n".join(results)
 
@@ -418,7 +467,11 @@ def enhance_text_with_targeted_field_ocr(
     text: str,
     target_fields: set[str],
 ) -> str:
-    targeted_text = extract_targeted_field_text(pdf_path, target_fields)
+    targeted_text = extract_targeted_field_text(
+        pdf_path,
+        target_fields,
+        page_numbers=recovery_page_numbers(pdf_path),
+    )
     if not targeted_text:
         return text
 
@@ -426,6 +479,83 @@ def enhance_text_with_targeted_field_ocr(
         text
         + "\n\n===== TARGETED FIELD OCR =====\n\n"
         + targeted_text[:3000]
+    )
+
+
+def extract_single_page_document_text(
+    pdf_path: Path,
+    *,
+    page_number: int,
+    label: str,
+) -> str:
+    embedded_text = extract_embedded_pdf_text(pdf_path, page_number=page_number)
+    sections = []
+    if embedded_text:
+        sections.append(
+            f"===== EMBEDDED PDF TEXT ({label}) =====\n\n"
+            + embedded_text[:5000]
+        )
+
+    try:
+        page = render_page(pdf_path, page_number=page_number, dpi=VISION_DPI)
+    except Exception as error:
+        print(
+            f"PDF rendering failed for {pdf_path.name} page {page_number}: {error}"
+        )
+        return "\n\n".join(sections)
+
+    if page is None:
+        return "\n\n".join(sections)
+
+    vision = extract_structured_macos_vision(pdf_path, page=page)
+    if vision.text:
+        sections.append(
+            f"===== MACOS VISION OCR ({label}) =====\n\n"
+            + vision.text[:4000]
+        )
+
+    summary = structured_vision_summary(vision.lines)
+    if summary:
+        sections.append(
+            f"===== STRUCTURED VISION OCR LINES ({label}) =====\n\n"
+            + summary
+        )
+
+    return "\n\n".join(sections)
+
+
+def enhance_text_with_recovery_pages(
+    pdf_path: Path,
+    text: str,
+    target_fields: set[str],
+) -> str:
+    if not target_fields:
+        return text
+
+    additions = []
+    existing_normalized = re.sub(r"\s+", " ", text).strip().lower()
+    total_pages = pdf_page_count(pdf_path)
+    for page_number in recovery_page_numbers(pdf_path):
+        if page_number == 1:
+            continue
+        label = "LAST PAGE" if page_number == total_pages else f"PAGE {page_number}"
+        page_text = extract_single_page_document_text(
+            pdf_path,
+            page_number=page_number,
+            label=label,
+        )
+        normalized = re.sub(r"\s+", " ", page_text).strip().lower()
+        if not normalized or normalized in existing_normalized:
+            continue
+        additions.append(page_text)
+
+    if not additions:
+        return text
+
+    return (
+        text
+        + "\n\n===== RECOVERY PAGE OCR =====\n\n"
+        + "\n\n".join(additions)[:8000]
     )
 
 

@@ -12,6 +12,7 @@ from pdf_renamer.extraction_model import (
     parse_model_response,
 )
 from pdf_renamer.models import DocumentDetails, VisionLine
+from pdf_renamer import ocr
 from pdf_renamer.ocr import field_crop_candidates, line_matches_field_label
 from pdf_renamer.workflow import (
     enabled_fields,
@@ -151,6 +152,19 @@ def main() -> int:
         raise AssertionError("missing date crop candidate")
     if not any(label.startswith("reference near Invoice Number") for label in labels):
         raise AssertionError("missing reference crop candidate")
+
+    original_page_count = ocr.pdf_page_count
+    try:
+        ocr.pdf_page_count = lambda _path: 1
+        expect(ocr.recovery_page_numbers(Path("single.pdf")), [1])
+
+        ocr.pdf_page_count = lambda _path: 2
+        expect(ocr.recovery_page_numbers(Path("two.pdf")), [1, 2])
+
+        ocr.pdf_page_count = lambda _path: 5
+        expect(ocr.recovery_page_numbers(Path("five.pdf")), [1, 5, 2])
+    finally:
+        ocr.pdf_page_count = original_page_count
 
     print("PASS: targeted OCR planning")
     return 0
